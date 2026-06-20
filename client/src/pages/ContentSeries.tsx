@@ -57,6 +57,7 @@ export default function ContentSeries() {
         console.error("Failed to parse draft", e);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [existingDraft]);
 
   // Auto-save with debounce
@@ -80,7 +81,7 @@ export default function ContentSeries() {
         });
       }
     }, 1500);
-  }, [title, description, postCount]);
+  }, [title, description, postCount, saveDraftMutation]);
 
   // Trigger auto-save when form changes
   useEffect(() => {

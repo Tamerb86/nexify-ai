@@ -44,6 +44,7 @@ export function TrendingTopicsSidebar({
     if (!trendingKeywords) {
       handleRefreshTrends();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleRefreshTrends = async () => {

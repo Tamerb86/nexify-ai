@@ -15,6 +15,7 @@ export function useTheme() {
     setThemeState(initialTheme);
     applyTheme(initialTheme);
     setMounted(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const applyTheme = useCallback((newTheme: Theme) => {

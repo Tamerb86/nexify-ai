@@ -165,6 +165,7 @@ export default function Generate() {
         console.error("Failed to parse draft", e);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [existingDraft]);
 
   // Auto-save with debounce
@@ -176,7 +177,7 @@ export default function Generate() {
         saveDraftMutation.mutate({ pageType: "generate", formData, title: topic.substring(0, 50) || "Utkast" });
       }
     }, 1500);
-  }, [topic, platform, tone, length, keywords, useVoiceProfile, generateAIImage, imageStyle]);
+  }, [topic, platform, tone, length, keywords, useVoiceProfile, generateAIImage, imageStyle, saveDraftMutation]);
 
   // Trigger auto-save when form changes
   useEffect(() => {

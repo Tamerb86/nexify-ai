@@ -46,7 +46,7 @@ export default function AdminMonitoring() {
     const interval = setInterval(fetchData, 30000); // Refresh every 30 seconds
 
     return () => clearInterval(interval);
-  }, [user]);
+  }, [user, navigate]);
 
   async function fetchData() {
     try {

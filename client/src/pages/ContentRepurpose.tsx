@@ -47,6 +47,7 @@ export default function ContentRepurpose() {
         // Failed to parse draft
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [existingDraft]);
 
   // Auto-save with debounce
@@ -70,7 +71,7 @@ export default function ContentRepurpose() {
         });
       }
     }, 1500);
-  }, [selectedPost, targetPlatform, repurposeType]);
+  }, [selectedPost, targetPlatform, repurposeType, saveDraftMutation]);
 
   // Trigger auto-save when form changes
   useEffect(() => {

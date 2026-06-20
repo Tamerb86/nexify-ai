@@ -49,6 +49,7 @@ export default function EngagementHelper() {
         console.error("Failed to parse draft", e);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [existingDraft]);
 
   // Auto-save with debounce
@@ -71,7 +72,7 @@ export default function EngagementHelper() {
         });
       }
     }, 1500);
-  }, [originalPost, responseType]);
+  }, [originalPost, responseType, saveDraftMutation]);
 
   // Trigger auto-save when form changes
   useEffect(() => {

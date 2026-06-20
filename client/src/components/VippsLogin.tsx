@@ -158,6 +158,7 @@ export function VippsLoginCallback() {
 
     // Handle callback
     handleCallback.mutate({ code, state });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (isProcessing) {

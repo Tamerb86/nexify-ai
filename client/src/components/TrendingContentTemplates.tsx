@@ -22,6 +22,7 @@ export function TrendingContentTemplates({
     // Generate templates based on keyword and platform
     const generatedTemplates = generateTemplates(keyword, platform);
     setTemplates(generatedTemplates);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keyword, platform]);
 
   const generateTemplates = (keyword: string, platform: string) => {
