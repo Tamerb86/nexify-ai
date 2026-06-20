@@ -250,17 +250,18 @@ export const socialMediaRouter = router({
     .mutation(async ({ input }) => {
       try {
         switch (input.platform) {
-          case "facebook":
+          case "facebook": {
             const userAccessToken = input.config.userAccessToken as string;
             const pages = await getFacebookPages(userAccessToken);
             return {
               success: pages.length > 0,
-              message: pages.length > 0 
+              message: pages.length > 0
                 ? `Connected to ${pages.length} Facebook page(s)`
                 : "No Facebook pages found",
             };
+          }
 
-          case "telegram":
+          case "telegram": {
             const telegramToken = input.config.token as string;
             const response = await fetch(
               `https://api.telegram.org/bot${telegramToken}/getMe`
@@ -272,6 +273,7 @@ export const socialMediaRouter = router({
                 ? `Telegram bot connected: @${data.result.username}`
                 : data.description || "Failed to connect",
             };
+          }
 
           default:
             return {

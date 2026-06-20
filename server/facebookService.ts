@@ -3,6 +3,8 @@
  * Handles communication with Facebook API for content posting and page management
  */
 
+import crypto from "crypto";
+
 const FACEBOOK_API_VERSION = "v18.0";
 const FACEBOOK_GRAPH_URL = `https://graph.facebook.com/${FACEBOOK_API_VERSION}`;
 
@@ -229,7 +231,6 @@ export function verifyFacebookWebhookSignature(
   signature: string,
   appSecret: string
 ): boolean {
-  const crypto = require("crypto");
   const expectedSignature = crypto
     .createHmac("sha256", appSecret)
     .update(body)

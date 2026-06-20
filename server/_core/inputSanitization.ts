@@ -33,7 +33,7 @@ function sanitizeObject(obj: any): any {
   if (typeof obj === "object" && obj !== null) {
     const sanitized: any = {};
     for (const key in obj) {
-      if (obj.hasOwnProperty(key)) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
         sanitized[key] = sanitizeObject(obj[key]);
       }
     }
@@ -52,7 +52,8 @@ function sanitizeString(str: string): string {
   // Remove null bytes
   str = str.replace(/\0/g, "");
 
-  // Remove control characters
+  // Remove control characters (the control-char range here is intentional)
+  // eslint-disable-next-line no-control-regex
   str = str.replace(/[\x00-\x1F\x7F]/g, "");
 
   // Sanitize HTML

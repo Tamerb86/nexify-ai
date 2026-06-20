@@ -113,7 +113,7 @@ export async function getAnalyticsByDateRange(
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  let conditions = [
+  const conditions = [
     eq(postAnalytics.userId, userId),
     gte(postAnalytics.publishedAt, startDate),
     lte(postAnalytics.publishedAt, endDate),

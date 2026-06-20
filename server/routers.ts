@@ -103,7 +103,7 @@ export const appRouter = router({
       const { onboardingStatus } = await import("../drizzle/schema");
       const { eq } = await import("drizzle-orm");
       
-      let status = await db.select().from(onboardingStatus).where(eq(onboardingStatus.userId, ctx.user.id)).limit(1);
+      const status = await db.select().from(onboardingStatus).where(eq(onboardingStatus.userId, ctx.user.id)).limit(1);
       
       // Create default status if it doesn't exist
       if (!status || status.length === 0) {
@@ -1289,7 +1289,7 @@ Skriv et ${input.responseType} svar.`
         const { ideas } = await import("../drizzle/schema");
         const { eq, and, like, desc } = await import("drizzle-orm");
         
-        let query = db.select().from(ideas).where(eq(ideas.userId, ctx.user.id));
+        const query = db.select().from(ideas).where(eq(ideas.userId, ctx.user.id));
         
         const results = await db.select().from(ideas)
           .where(eq(ideas.userId, ctx.user.id))

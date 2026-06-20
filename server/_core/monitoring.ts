@@ -66,8 +66,8 @@ export function trackUsage(req: Request, res: Response, next: NextFunction) {
         metricsStore.shift();
       }
 
-      // Check for anomalies
-      checkAnomalies(metrics);
+      // Check for anomalies (fire-and-forget — must not block the response)
+      void checkAnomalies(metrics);
     }
 
     return originalSend.call(this, data);

@@ -125,7 +125,7 @@ export async function createSecurityAlert(options: CreateSecurityAlertOptions) {
   try {
     const database = await getDatabase();
     // If email is provided, find the user
-    let userId = options.userId;
+    const userId = options.userId;
     if (!userId && options.email) {
       // For now, we'll skip user lookup - can be enhanced later
       // This is just for security alerts without a specific user

@@ -897,7 +897,7 @@ export async function getTrendingTopics(category?: string): Promise<TrendingTopi
   if (!db) return [];
   
   try {
-    let query = db
+    const query = db
       .select()
       .from(trendingTopics)
       .where(eq(trendingTopics.active, 1))

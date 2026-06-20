@@ -42,7 +42,7 @@ export default function Dashboard() {
   const filteredAndSortedPosts = useMemo(() => {
     if (!posts) return [];
     
-    let filtered = posts.filter((post) => {
+    const filtered = posts.filter((post) => {
       const matchesSearch = post.generatedContent.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            post.rawInput?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesPlatform = selectedPlatform === "all" || post.platform === selectedPlatform;

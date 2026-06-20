@@ -149,7 +149,7 @@ export async function getNextOptimalTime(
 
   // Find the next optimal time
   const topTime = optimalTimes[0];
-  let nextTime = new Date(startDate);
+  const nextTime = new Date(startDate);
 
   // Set to the optimal hour
   nextTime.setHours(topTime.hour, 0, 0, 0);
@@ -248,7 +248,7 @@ export async function getScheduledPosts(
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  let conditions = [eq(scheduledPosts.userId, userId)];
+  const conditions = [eq(scheduledPosts.userId, userId)];
 
   if (status) {
     conditions.push(eq(scheduledPosts.status, status));

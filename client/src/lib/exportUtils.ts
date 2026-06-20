@@ -1,5 +1,4 @@
 import * as XLSX from '@e965/xlsx';
-// @ts-ignore
 import Papa from 'papaparse';
 
 export interface ExportOptions {

@@ -85,7 +85,7 @@ export async function getUserPosts(
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  let conditions = [eq(posts.userId, userId)];
+  const conditions = [eq(posts.userId, userId)];
   if (status) {
     conditions.push(eq(posts.status, status as any));
   }

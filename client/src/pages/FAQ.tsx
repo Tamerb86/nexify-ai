@@ -37,7 +37,7 @@ export default function FAQ() {
 
   // Filter FAQs based on search and category
   const filteredFAQs = useMemo(() => {
-    let result = searchQuery.length > 0 ? searchResults : allFAQs;
+    const result = searchQuery.length > 0 ? searchResults : allFAQs;
     return result;
   }, [searchQuery, searchResults, allFAQs]);
 

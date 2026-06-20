@@ -20,7 +20,7 @@ export class SettingsService {
     const db = await getDb();
     if (!db) throw new Error("Database not available");
 
-    let settings = await (db as any).query.userAccountSettings.findFirst({
+    const settings = await (db as any).query.userAccountSettings.findFirst({
       where: eq(userAccountSettings.userId, userId),
     });
 
@@ -70,7 +70,7 @@ export class SettingsService {
     const db = await getDb();
     if (!db) throw new Error("Database not available");
 
-    let settings = await (db as any).query.notificationSettings.findFirst({
+    const settings = await (db as any).query.notificationSettings.findFirst({
       where: eq(notificationSettings.userId, userId),
     });
 
@@ -222,7 +222,7 @@ export class SettingsService {
     const db = await getDb();
     if (!db) throw new Error("Database not available");
 
-    let prefs = await (db as any).query.userContentPreferences.findFirst({
+    const prefs = await (db as any).query.userContentPreferences.findFirst({
       where: eq(userContentPreferences.userId, userId),
     });
 

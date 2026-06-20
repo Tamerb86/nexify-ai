@@ -112,7 +112,7 @@ export async function searchPosts(
   }
 
   // Build query with sorting
-  let baseQuery = db
+  const baseQuery = db
     .select()
     .from(posts)
     .where(and(...conditions));

@@ -159,7 +159,7 @@ export function startScheduler() {
  */
 export function stopScheduler() {
   if (schedulerTask) {
-    schedulerTask.stop();
+    void schedulerTask.stop();
     schedulerTask = null;
     console.log('[Scheduler] Stopped');
   }
