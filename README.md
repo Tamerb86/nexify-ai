@@ -1,0 +1,932 @@
+# 🚀 Innlegg - Din AI Innholdsassistent
+
+**Professional AI-powered content generation platform for Norwegian creators and businesses**
+
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Node.js](https://img.shields.io/badge/node.js-22.13.0-green)
+![React](https://img.shields.io/badge/react-19.2.1-61dafb)
+![License](https://img.shields.io/badge/license-MIT-green)
+
+---
+
+## 📋 Table of Contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [Quick Start](#quick-start)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Environment Setup](#environment-setup)
+- [Database Setup](#database-setup)
+- [Development](#development)
+- [Testing](#testing)
+- [Building for Production](#building-for-production)
+- [Deployment](#deployment)
+- [API Documentation](#api-documentation)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+- [Support](#support)
+
+---
+
+## 📖 Overview
+
+Innlegg is an AI-powered content generation platform designed specifically for Norwegian creators, businesses, and marketers. The application leverages advanced language models to generate professional social media content, blog posts, and marketing materials in Norwegian language.
+
+**Key Capabilities**:
+- Generate AI-powered content in seconds
+- Multi-platform support (LinkedIn, Twitter, Instagram, Facebook)
+- Content scheduling and publishing
+- Analytics and performance tracking
+- Content repurposing and optimization
+- Trend analysis and hashtag recommendations
+
+---
+
+## ✨ Features
+
+### Core Features
+- **AI Content Generation** - Generate professional content using OpenAI GPT models
+- **Multi-Platform Support** - Publish to LinkedIn, Twitter, Instagram, and Facebook
+- **Content Scheduling** - Schedule posts for optimal publishing times
+- **Draft Management** - Save and manage content drafts
+- **Content Versioning** - Track and restore previous versions
+- **Analytics** - Track content performance and engagement
+
+### Advanced Features
+- **Content Repurposing** - Adapt content for different platforms
+- **Trend Analysis** - Discover trending topics and hashtags
+- **Bulk Operations** - Manage multiple posts efficiently
+- **User Preferences** - Customize tone, style, and language
+- **Subscription Management** - Flexible pricing plans
+- **Payment Processing** - Secure Stripe integration
+
+### Security Features
+- **OAuth 2.0 Authentication** - Secure user authentication via Manus
+- **Rate Limiting** - Protect against abuse
+- **CORS Protection** - Cross-origin request security
+- **SQL Injection Prevention** - Parameterized queries via Drizzle ORM
+- **XSS Protection** - HTML sanitization with DOMPurify
+- **Security Headers** - Helmet.js configuration
+
+---
+
+## 🚀 Quick Start
+
+### For Development
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/innlegg.git
+cd innlegg
+
+# Install dependencies
+pnpm install
+
+# Set up environment variables
+cp .env.example .env.local
+
+# Set up database
+pnpm db:push
+
+# Start development server
+pnpm dev
+```
+
+Visit `http://localhost:3000` in your browser.
+
+### For Production
+
+```bash
+# Build the application
+pnpm build
+
+# Start production server
+pnpm start
+```
+
+---
+
+## 📋 Prerequisites
+
+Before you begin, ensure you have the following installed:
+
+| Requirement | Version | Purpose |
+|-------------|---------|---------|
+| **Node.js** | 18.0+ or 20.0+ or 22.0+ | JavaScript runtime |
+| **pnpm** | 10.0+ | Package manager |
+| **MySQL/TiDB** | 8.0+ | Database |
+| **Git** | 2.0+ | Version control |
+
+### System Requirements
+
+- **Development**: 512 MB RAM, 1 CPU core, 2 GB disk space
+- **Production**: 2 GB RAM, 2+ CPU cores, 50+ GB disk space
+
+### Browser Support
+
+- Chrome/Edge 90+
+- Firefox 88+
+- Safari 14+
+- Mobile browsers (iOS Safari 14+, Chrome Mobile 90+)
+
+---
+
+## 📦 Installation
+
+### Step 1: Clone the Repository
+
+```bash
+git clone https://github.com/yourusername/innlegg.git
+cd innlegg
+```
+
+### Step 2: Install Dependencies
+
+```bash
+# Using pnpm (recommended)
+pnpm install
+
+# Or using npm
+npm install
+
+# Or using yarn
+yarn install
+```
+
+### Step 3: Set Up Environment Variables
+
+```bash
+# Copy the example environment file
+cp .env.example .env.local
+
+# Edit the file with your configuration
+nano .env.local
+```
+
+### Step 4: Set Up Database
+
+```bash
+# Generate and apply migrations
+pnpm db:push
+
+# Verify database connection
+pnpm db:check
+```
+
+### Step 5: Start Development Server
+
+```bash
+pnpm dev
+```
+
+The application will be available at `http://localhost:3000`.
+
+---
+
+## 🔧 Environment Setup
+
+### Required Environment Variables
+
+Create a `.env.local` file in the project root with the following variables:
+
+```bash
+# Database Configuration
+DATABASE_URL=mysql://user:password@localhost:3306/innlegg
+
+# Authentication
+VITE_APP_ID=your_manus_app_id
+OAUTH_SERVER_URL=https://api.manus.im
+VITE_OAUTH_PORTAL_URL=https://auth.manus.im
+JWT_SECRET=your_jwt_secret_key
+
+# Owner Information
+OWNER_OPEN_ID=your_owner_open_id
+OWNER_NAME=Your Name
+
+# AI/LLM Configuration
+OPENAI_API_KEY=sk-your-openai-api-key
+HUGGINGFACE_API_KEY=hf_your_huggingface_token
+
+# Manus Built-in APIs
+BUILT_IN_FORGE_API_URL=https://api.manus.im/forge
+BUILT_IN_FORGE_API_KEY=your_forge_api_key
+VITE_FRONTEND_FORGE_API_KEY=your_frontend_forge_key
+VITE_FRONTEND_FORGE_API_URL=https://api.manus.im/forge
+
+# Payment Processing (Stripe)
+STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
+VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
+STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
+
+# Analytics
+VITE_ANALYTICS_WEBSITE_ID=your_analytics_id
+VITE_ANALYTICS_ENDPOINT=https://analytics.manus.im
+
+# Application Settings
+NODE_ENV=development
+VITE_APP_TITLE=Innlegg
+VITE_APP_LOGO=https://your-domain.com/logo.png
+
+# Optional: Error Tracking
+SENTRY_DSN=https://your-sentry-dsn@sentry.io/project-id
+
+# Optional: Telegram Bot (if using Telegram integration)
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+```
+
+### Environment Variable Descriptions
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DATABASE_URL` | ✅ | MySQL/TiDB connection string |
+| `VITE_APP_ID` | ✅ | Manus OAuth application ID |
+| `JWT_SECRET` | ✅ | Secret key for session cookies |
+| `OPENAI_API_KEY` | ✅ | OpenAI API key for content generation |
+| `STRIPE_SECRET_KEY` | ✅ | Stripe secret key for payments |
+| `SENTRY_DSN` | ⚠️ | Sentry DSN for error tracking (recommended) |
+| `TELEGRAM_BOT_TOKEN` | ❌ | Telegram bot token (optional) |
+
+### Getting API Keys
+
+**Manus OAuth**:
+1. Visit https://manus.im/dashboard
+2. Create a new application
+3. Copy the App ID and OAuth Server URL
+
+**OpenAI**:
+1. Visit https://platform.openai.com/api-keys
+2. Create a new API key
+3. Copy the key to `OPENAI_API_KEY`
+
+**Stripe**:
+1. Visit https://dashboard.stripe.com
+2. Get test keys from Developers → API Keys
+3. Copy Secret Key and Publishable Key
+
+**Sentry**:
+1. Visit https://sentry.io
+2. Create a new project
+3. Copy the DSN to `SENTRY_DSN`
+
+---
+
+## 🗄️ Database Setup
+
+### Creating the Database
+
+```bash
+# Connect to MySQL
+mysql -u root -p
+
+# Create database
+CREATE DATABASE innlegg CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'innlegg_user'@'localhost' IDENTIFIED BY 'strong_password';
+GRANT ALL PRIVILEGES ON innlegg.* TO 'innlegg_user'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+```
+
+### Running Migrations
+
+```bash
+# Generate and apply all migrations
+pnpm db:push
+
+# View migration status
+pnpm db:status
+
+# Rollback last migration (if needed)
+pnpm db:rollback
+```
+
+### Database Schema
+
+The application uses the following main tables:
+
+- **users** - User accounts and authentication
+- **posts** - Generated social media content
+- **subscriptions** - User subscription plans
+- **preferences** - User preferences and settings
+- **analytics** - Performance metrics and analytics
+- **onboarding_status** - User onboarding progress
+
+### Backup and Recovery
+
+```bash
+# Create database backup
+mysqldump -u innlegg_user -p innlegg > backup_$(date +%Y%m%d).sql
+
+# Restore from backup
+mysql -u innlegg_user -p innlegg < backup_20260507.sql
+```
+
+---
+
+## 💻 Development
+
+### Project Structure
+
+```
+innlegg/
+├── client/                    # Frontend (React)
+│   ├── src/
+│   │   ├── pages/            # Page components
+│   │   ├── components/       # Reusable components
+│   │   ├── contexts/         # React contexts
+│   │   ├── hooks/            # Custom hooks
+│   │   ├── lib/              # Utilities and helpers
+│   │   ├── App.tsx           # Main app component
+│   │   └── main.tsx          # Entry point
+│   ├── public/               # Static assets
+│   └── index.html            # HTML template
+├── server/                    # Backend (Express + tRPC)
+│   ├── routers.ts            # tRPC route definitions
+│   ├── db.ts                 # Database helpers
+│   ├── _core/                # Core infrastructure
+│   │   ├── index.ts          # Express server setup
+│   │   ├── trpc.ts           # tRPC configuration
+│   │   ├── context.ts        # tRPC context
+│   │   └── auth.ts           # Authentication logic
+│   └── routers/              # Feature routers
+├── drizzle/                   # Database schema and migrations
+├── shared/                    # Shared types and constants
+├── storage/                   # S3 storage helpers
+├── vite.config.ts            # Vite configuration
+├── tsconfig.json             # TypeScript configuration
+├── package.json              # Dependencies
+└── README.md                 # This file
+```
+
+### Development Workflow
+
+1. **Start Development Server**
+   ```bash
+   pnpm dev
+   ```
+
+2. **Make Changes**
+   - Edit files in `client/src/` for frontend
+   - Edit files in `server/` for backend
+
+3. **Hot Module Replacement (HMR)**
+   - Frontend changes reload automatically
+   - Backend changes require server restart
+
+4. **Type Checking**
+   ```bash
+   pnpm check
+   ```
+
+5. **Code Formatting**
+   ```bash
+   pnpm format
+   ```
+
+### Adding New Features
+
+#### Adding a New API Endpoint
+
+1. Define the procedure in `server/routers.ts`:
+   ```typescript
+   export const appRouter = router({
+     myFeature: router({
+       getData: protectedProcedure
+         .input(z.object({ id: z.number() }))
+         .query(async ({ ctx, input }) => {
+           // Your logic here
+           return data;
+         }),
+     }),
+   });
+   ```
+
+2. Use in frontend:
+   ```typescript
+   const { data } = trpc.myFeature.getData.useQuery({ id: 1 });
+   ```
+
+#### Adding a New Database Table
+
+1. Add table to `drizzle/schema.ts`:
+   ```typescript
+   export const myTable = mysqlTable("my_table", {
+     id: int("id").autoincrement().primaryKey(),
+     name: varchar("name", { length: 255 }).notNull(),
+     createdAt: timestamp("created_at").defaultNow(),
+   });
+   ```
+
+2. Apply migration:
+   ```bash
+   pnpm db:push
+   ```
+
+---
+
+## 🧪 Testing
+
+### Running Tests
+
+```bash
+# Run all tests
+pnpm test
+
+# Run tests in watch mode
+pnpm test:watch
+
+# Run specific test file
+pnpm test server/auth.test.ts
+
+# Generate coverage report
+pnpm test:coverage
+```
+
+### Test Structure
+
+Tests are located in `server/` directory with `.test.ts` extension:
+
+```
+server/
+├── auth.test.ts
+├── content.test.ts
+├── payment.test.ts
+└── ...
+```
+
+### Writing Tests
+
+Example test using Vitest:
+
+```typescript
+import { describe, it, expect } from "vitest";
+import { myFunction } from "./myFunction";
+
+describe("myFunction", () => {
+  it("should return correct value", () => {
+    const result = myFunction(5);
+    expect(result).toBe(10);
+  });
+
+  it("should handle edge cases", () => {
+    const result = myFunction(0);
+    expect(result).toBe(0);
+  });
+});
+```
+
+### Current Test Status
+
+- **Total Tests**: 233
+- **Passing**: 207 (89%)
+- **Failing**: 26 (11%)
+- **Test Files**: 327
+
+**Note**: Some Telegram router tests are currently failing. See [Troubleshooting](#troubleshooting) for details.
+
+---
+
+## 🏗️ Building for Production
+
+### Build Process
+
+```bash
+# Build the application
+pnpm build
+
+# This will:
+# 1. Build frontend with Vite
+# 2. Bundle backend with esbuild
+# 3. Generate optimized production files
+```
+
+### Build Output
+
+```
+dist/
+├── public/               # Frontend static files
+│   ├── assets/          # Bundled JavaScript/CSS
+│   └── index.html       # HTML entry point
+└── index.js             # Backend server
+```
+
+### Build Optimization
+
+The build process includes:
+- **Code Splitting**: 40+ routes with lazy loading
+- **Minification**: Terser with console removal
+- **Tree-Shaking**: Unused code removal
+- **Asset Optimization**: Image and font optimization
+
+### Performance Metrics
+
+After optimization:
+- **Bundle Size**: 3.2 MB (down from 3.34 MB)
+- **First Contentful Paint**: 14.1s (4G network)
+- **Largest Contentful Paint**: 24.4s (4G network)
+- **JavaScript Files**: 71 chunks
+
+---
+
+## 🚀 Deployment
+
+### Deployment Options
+
+#### Option 1: Manus Platform (Recommended)
+
+1. Create checkpoint:
+   ```bash
+   pnpm build
+   ```
+
+2. Click "Publish" in Manus Dashboard
+
+3. Configure custom domain (optional)
+
+#### Option 2: Docker
+
+1. Create `Dockerfile`:
+   ```dockerfile
+   FROM node:22-alpine
+   WORKDIR /app
+   COPY package.json pnpm-lock.yaml ./
+   RUN npm install -g pnpm && pnpm install
+   COPY . .
+   RUN pnpm build
+   EXPOSE 3000
+   CMD ["pnpm", "start"]
+   ```
+
+2. Build and run:
+   ```bash
+   docker build -t innlegg .
+   docker run -p 3000:3000 innlegg
+   ```
+
+#### Option 3: Traditional Server
+
+1. Build application:
+   ```bash
+   pnpm build
+   ```
+
+2. Upload `dist/` to server
+
+3. Install production dependencies:
+   ```bash
+   pnpm install --prod
+   ```
+
+4. Start server:
+   ```bash
+   NODE_ENV=production pnpm start
+   ```
+
+### Pre-Deployment Checklist
+
+- [ ] All tests passing (100%)
+- [ ] Environment variables configured
+- [ ] Database backups created
+- [ ] SSL/TLS certificates ready
+- [ ] Rate limiting configured
+- [ ] Monitoring enabled (Sentry)
+- [ ] Error logging configured
+- [ ] Health checks passing
+- [ ] Performance metrics acceptable
+- [ ] Security audit completed
+
+### Post-Deployment Monitoring
+
+```bash
+# Monitor error rates
+# Check Sentry dashboard at https://sentry.io
+
+# Monitor performance
+# Check Google Analytics at https://analytics.google.com
+
+# Monitor uptime
+# Check status page at https://status.innlegg.no
+
+# View server logs
+# Check application logs in /var/log/innlegg/
+```
+
+---
+
+## 📚 API Documentation
+
+### API Overview
+
+The application uses **tRPC** for type-safe API communication. All endpoints are automatically typed and documented.
+
+### Main API Routes
+
+#### Authentication
+- `auth.me` - Get current user
+- `auth.logout` - Logout current user
+
+#### Content Management
+- `content.generate` - Generate new content
+- `content.list` - List user's content
+- `content.update` - Update existing content
+- `content.delete` - Delete content
+- `content.publish` - Publish to platform
+
+#### User Management
+- `user.getPreference` - Get user preferences
+- `user.updateLanguage` - Update language preference
+- `user.getSubscription` - Get subscription details
+
+#### Payment
+- `payment.createCheckoutSession` - Create Stripe checkout
+- `payment.getPaymentHistory` - Get payment history
+
+### API Examples
+
+#### Generate Content
+
+```typescript
+const { data } = trpc.content.generate.useMutation();
+
+data.mutate({
+  topic: "Digital Marketing",
+  platform: "linkedin",
+  tone: "professional",
+}, {
+  onSuccess: (result) => {
+    console.log("Generated:", result.generatedContent);
+  },
+});
+```
+
+#### List User Content
+
+```typescript
+const { data: posts } = trpc.content.list.useQuery();
+
+posts?.forEach(post => {
+  console.log(`${post.platform}: ${post.generatedContent}`);
+});
+```
+
+#### Create Payment
+
+```typescript
+const { mutate } = trpc.payment.createCheckoutSession.useMutation();
+
+mutate({
+  planId: "pro_monthly",
+}, {
+  onSuccess: (session) => {
+    window.open(session.url, '_blank');
+  },
+});
+```
+
+### Full API Documentation
+
+For complete API documentation, see:
+- [tRPC Documentation](https://trpc.io/docs)
+- [API Routes](./docs/API.md) (coming soon)
+- [Type Definitions](./shared/types.ts)
+
+---
+
+## 🔍 Troubleshooting
+
+### Common Issues
+
+#### Issue: "Cannot find module" error
+
+**Solution**:
+```bash
+# Clear cache and reinstall
+rm -rf node_modules pnpm-lock.yaml
+pnpm install
+```
+
+#### Issue: Database connection fails
+
+**Solution**:
+```bash
+# Check database URL
+echo $DATABASE_URL
+
+# Verify MySQL is running
+mysql -u root -p -e "SELECT 1;"
+
+# Check credentials
+mysql -u innlegg_user -p innlegg -e "SELECT 1;"
+```
+
+#### Issue: Port 3000 already in use
+
+**Solution**:
+```bash
+# Use different port
+PORT=3001 pnpm dev
+
+# Or kill process using port 3000
+lsof -i :3000
+kill -9 <PID>
+```
+
+#### Issue: Tests failing
+
+**Solution**:
+```bash
+# Run tests with verbose output
+pnpm test -- --reporter=verbose
+
+# Run specific test file
+pnpm test server/auth.test.ts
+
+# Check test status
+pnpm test -- --reporter=summary
+```
+
+### Known Issues
+
+1. **Telegram Router Tests Failing** (26 tests)
+   - Issue: `__vite_ssr_exportName__` not defined
+   - Status: Under investigation
+   - Workaround: Skip Telegram tests for now
+
+2. **Performance Metrics High**
+   - Issue: Large JavaScript bundle
+   - Status: Optimization in progress
+   - Workaround: Use CDN for static assets
+
+3. **Database Indexes Missing**
+   - Issue: Slow queries on large datasets
+   - Status: Planned for next release
+   - Workaround: Add indexes manually (see Database Setup)
+
+### Getting Help
+
+1. **Check Documentation**: Review this README and docs/ folder
+2. **Search Issues**: Check GitHub issues for similar problems
+3. **Ask Community**: Post in discussions or forums
+4. **Contact Support**: Email support@innlegg.no
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please follow these guidelines:
+
+### Development Process
+
+1. **Fork the Repository**
+   ```bash
+   git clone https://github.com/yourusername/innlegg.git
+   cd innlegg
+   ```
+
+2. **Create Feature Branch**
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+
+3. **Make Changes**
+   - Follow code style guidelines
+   - Add tests for new features
+   - Update documentation
+
+4. **Run Tests**
+   ```bash
+   pnpm test
+   pnpm check
+   pnpm format
+   ```
+
+5. **Commit Changes**
+   ```bash
+   git commit -m "feat: add your feature description"
+   ```
+
+6. **Push and Create Pull Request**
+   ```bash
+   git push origin feature/your-feature-name
+   ```
+
+### Code Style
+
+- Use TypeScript for all code
+- Follow ESLint rules
+- Format with Prettier
+- Add JSDoc comments for functions
+
+### Testing Requirements
+
+- Write tests for new features
+- Maintain 80%+ code coverage
+- All tests must pass before merge
+
+### Commit Message Format
+
+```
+type(scope): subject
+
+body
+
+footer
+```
+
+Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
+
+---
+
+## 📞 Support
+
+### Getting Support
+
+- **Documentation**: https://innlegg.no/docs
+- **Email**: support@innlegg.no
+- **Issues**: https://github.com/yourusername/innlegg/issues
+- **Discussions**: https://github.com/yourusername/innlegg/discussions
+
+### Reporting Bugs
+
+When reporting bugs, please include:
+1. Detailed description of the issue
+2. Steps to reproduce
+3. Expected vs actual behavior
+4. Environment information (OS, Node version, etc.)
+5. Error messages and logs
+
+### Feature Requests
+
+To request features:
+1. Check if feature already exists
+2. Describe the use case
+3. Explain expected behavior
+4. Provide examples if possible
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🙏 Acknowledgments
+
+- Built with [React](https://react.dev) and [tRPC](https://trpc.io)
+- Database powered by [Drizzle ORM](https://orm.drizzle.team)
+- Styling with [Tailwind CSS](https://tailwindcss.com)
+- UI components from [Radix UI](https://www.radix-ui.com)
+- AI powered by [OpenAI](https://openai.com)
+- Payments via [Stripe](https://stripe.com)
+
+---
+
+## 📊 Project Status
+
+- **Current Version**: 1.0.0
+- **Status**: Beta (70% production-ready)
+- **Last Updated**: May 7, 2026
+- **Maintenance**: Active
+
+### Roadmap
+
+- [ ] Fix all failing tests (26 tests)
+- [ ] Add Sentry error tracking
+- [ ] Optimize performance (target: <2s FCP)
+- [ ] Add advanced analytics
+- [ ] Implement team collaboration
+- [ ] Mobile app development
+- [ ] API marketplace
+
+---
+
+## 📞 Contact
+
+**Project Lead**: Manus AI Team  
+**Email**: team@innlegg.no  
+**Website**: https://innlegg.no  
+**Twitter**: [@innlegg_no](https://twitter.com/innlegg_no)
+
+---
+
+**Last Updated**: May 7, 2026  
+**Version**: 1.0.0  
+**Status**: ✅ Ready for Development | ⚠️ Conditionally Ready for Production
+
+---
+
+## Quick Links
+
+- [Installation Guide](#installation)
+- [Environment Setup](#environment-setup)
+- [Development Guide](#development)
+- [Testing Guide](#testing)
+- [Deployment Guide](#deployment)
+- [API Documentation](#api-documentation)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+
+---
+
+**Happy coding! 🚀**
