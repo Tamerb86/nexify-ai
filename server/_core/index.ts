@@ -1,3 +1,4 @@
+import "dotenv/config"; // load .env before anything reads process.env (no-op in prod if absent)
 import express from "express";
 import { createServer } from "http";
 import net from "net";
@@ -351,8 +352,8 @@ async function startServer() {
   // Start scheduler
   startScheduler();
 
-  const port = await findAvailablePort();
-  
+  const port = await findAvailablePort(process.env.PORT ? parseInt(process.env.PORT, 10) : 3000);
+
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
   });
