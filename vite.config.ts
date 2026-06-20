@@ -37,69 +37,41 @@ export default defineConfig({
         manualChunks: (id: string) => {
           if (!id.includes("node_modules")) return;
 
-          // Matches a package whether installed flat (`/node_modules/<pkg>/`)
-          // or via pnpm (`/node_modules/.pnpm/<pkg>@`). Used for exact names so
-          // e.g. `react` does not also swallow `react-dom`, `react-query`, etc.
-          const pkg = (name: string) =>
-            id.includes(`/node_modules/${name}/`) ||
-            id.includes(`/node_modules/.pnpm/${name}@`);
+          // React adapters for heavy libs (@fullcalendar/react, @tiptap/react)
+          // re-export React and are pulled in by the eager graph. Keep them in
+          // the eager react chunk so the heavy editor/calendar chunks stay pure
+          // and lazy (otherwise they get linked into the initial bundle).
+          if (id.includes("@fullcalendar/react") || id.includes("@tiptap/react"))
+            return "vendor-react";
 
-          // Rich-text editor (TipTap + ProseMirror) — only loaded on editor pages.
+          // Heavy, feature-specific libs — only reached via lazy pages, so these
+          // chunks load on demand. Kept pure (their react adapters were routed to
+          // vendor-react above, and the d3 family is left in vendor-other): mixing
+          // those in links the chunk into the eager graph and defeats lazy-loading.
           if (id.includes("@tiptap") || id.includes("prosemirror")) return "vendor-editor";
-
-          // Calendar (FullCalendar) — only loaded on the calendar page.
           if (id.includes("@fullcalendar")) return "vendor-calendar";
+          if (id.includes("recharts")) return "vendor-charts";
 
-          // Charts: recharts pulls in the whole d3 family + helpers.
-          if (
-            id.includes("recharts") ||
-            id.includes("/d3-") ||
-            id.includes("victory-vendor") ||
-            id.includes("react-smooth") ||
-            id.includes("internmap")
-          )
-            return "vendor-charts";
-
-          // Icon set — large and used across the app; isolate for caching.
+          // Always-eager vendor groups, peeled off the former 900kB vendor-react
+          // and 750kB vendor-other catch-alls for parallel download + caching.
           if (id.includes("lucide-react")) return "vendor-icons";
-
-          // Animation runtime.
           if (
             id.includes("framer-motion") ||
             id.includes("motion-dom") ||
-            id.includes("motion-utils") ||
-            pkg("motion")
+            id.includes("motion-utils")
           )
             return "vendor-motion";
-
-          // Radix UI primitives (shadcn/ui foundation).
           if (id.includes("@radix-ui")) return "vendor-ui";
-
-          // Data layer: tRPC + react-query + superjson serializer.
           if (id.includes("@trpc") || id.includes("@tanstack") || id.includes("superjson"))
             return "vendor-data";
-
-          // Forms + schema validation.
-          if (
-            id.includes("react-hook-form") ||
-            id.includes("@hookform") ||
-            pkg("zod")
-          )
+          if (id.includes("react-hook-form") || id.includes("@hookform") || id.includes("zod"))
             return "vendor-form";
-
-          // React core only (precise — keeps satellite react-* libs out).
-          if (
-            pkg("react") ||
-            pkg("react-dom") ||
-            pkg("scheduler") ||
-            pkg("react-is") ||
-            id.includes("react/jsx-runtime")
-          )
-            return "vendor-react";
-
-          // Small shared utilities.
           if (id.includes("date-fns") || id.includes("clsx") || id.includes("tailwind-merge"))
             return "vendor-utils";
+
+          // React core. Broad match (kept last) so any remaining react-* satellite
+          // lands in the eager react chunk rather than fragmenting the graph.
+          if (id.includes("react")) return "vendor-react";
 
           return "vendor-other";
         },
