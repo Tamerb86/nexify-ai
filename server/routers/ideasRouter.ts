@@ -13,9 +13,7 @@ export const ideasRouter = router({
         const db = await getDb();
         if (!db) throw new Error("Database not available");
         const { ideas } = await import("../../drizzle/schema");
-        const { eq, and, like, desc } = await import("drizzle-orm");
-        
-        const query = db.select().from(ideas).where(eq(ideas.userId, ctx.user.id));
+        const { eq, desc } = await import("drizzle-orm");
         
         const results = await db.select().from(ideas)
           .where(eq(ideas.userId, ctx.user.id))

@@ -193,8 +193,8 @@ export const userRouter = router({
       const preferenceData = await getUserPreference(ctx.user.id);
       
       // Get user's posts and other data for export
-      const userPosts = await getUserPosts(ctx.user.id);
-      const userSubscription = await getUserSubscription(ctx.user.id);
+      const _userPosts = await getUserPosts(ctx.user.id);
+      const _userSubscription = await getUserSubscription(ctx.user.id);
       
       return {
         user: ctx.user,

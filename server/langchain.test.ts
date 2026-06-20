@@ -41,7 +41,7 @@ describe("LangChainService", () => {
       try {
         const { langchainService } = await import("./langchain/service");
         
-        const input = {
+        const _input = {
           platform: "linkedin" as const,
           topic: "AI revolutionizing workplace",
           tone: "professional",
@@ -67,7 +67,7 @@ describe("LangChainService", () => {
         const platforms = ["linkedin", "twitter", "facebook", "instagram"] as const;
 
         for (const platform of platforms) {
-          const input = {
+          const _input = {
             platform,
             topic: "Test topic",
             tone: "casual",
@@ -95,7 +95,7 @@ describe("LangChainService", () => {
         ];
 
         for (const tone of tones) {
-          const input = {
+          const _input = {
             platform: "linkedin" as const,
             topic: "Test topic",
             tone,
@@ -117,7 +117,7 @@ describe("LangChainService", () => {
       try {
         const { langchainService } = await import("./langchain/service");
         
-        const input = {
+        const _input = {
           content: "This is a test post about AI and machine learning",
           platform: "linkedin" as const,
           language: "en" as const
@@ -136,7 +136,7 @@ describe("LangChainService", () => {
         const platforms = ["linkedin", "twitter", "facebook", "instagram"] as const;
 
         for (const platform of platforms) {
-          const input = {
+          const _input = {
             content: "Test content",
             platform,
             language: "no" as const
@@ -155,7 +155,7 @@ describe("LangChainService", () => {
         const languages = ["en", "no"] as const;
 
         for (const language of languages) {
-          const input = {
+          const _input = {
             content: "Test content",
             platform: "linkedin" as const,
             language
@@ -174,7 +174,7 @@ describe("LangChainService", () => {
       try {
         const { langchainService } = await import("./langchain/service");
         
-        const input = {
+        const _input = {
           userMessage: "How can I improve my LinkedIn posts?",
           conversationHistory: [],
           language: "en" as const
@@ -191,7 +191,7 @@ describe("LangChainService", () => {
       try {
         const { langchainService } = await import("./langchain/service");
         
-        const history = [
+        const _history = [
           { role: "user" as const, content: "How can I improve my posts?" },
           { role: "assistant" as const, content: "Focus on engagement" }
         ];
@@ -208,7 +208,7 @@ describe("LangChainService", () => {
         
         const messageTypes = ["question", "feedback", "request"] as const;
 
-        for (const type of messageTypes) {
+        for (const _type of messageTypes) {
           expect(langchainService.coachConversation).toBeDefined();
         }
       } catch (error) {
@@ -222,7 +222,7 @@ describe("LangChainService", () => {
       try {
         const { langchainService } = await import("./langchain/service");
         
-        const input = {
+        const _input = {
           industry: "technology",
           language: "en" as const,
           platform: "linkedin" as const
@@ -240,7 +240,7 @@ describe("LangChainService", () => {
         const { langchainService } = await import("./langchain/service");
         const levels = ["beginner", "intermediate", "expert"] as const;
 
-        for (const level of levels) {
+        for (const _level of levels) {
           expect(langchainService.analyzeTrends).toBeDefined();
         }
       } catch (error) {
@@ -254,7 +254,7 @@ describe("LangChainService", () => {
       try {
         const { langchainService } = await import("./langchain/service");
         
-        const input = {
+        const _input = {
           content: "This is a test post",
           platform: "linkedin" as const,
           language: "en" as const,
@@ -279,7 +279,7 @@ describe("LangChainService", () => {
           ["engagement", "clarity"]
         ];
 
-        for (const areas of focusAreas) {
+        for (const _areas of focusAreas) {
           expect(langchainService.improveContent).toBeDefined();
         }
       } catch (error) {
@@ -293,7 +293,7 @@ describe("LangChainService", () => {
         const languages = ["en", "no"] as const;
 
         for (const language of languages) {
-          const input = {
+          const _input = {
             content: "Test content",
             platform: "linkedin" as const,
             language,

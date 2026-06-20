@@ -174,7 +174,6 @@ describe('Drafts Feature', () => {
 
   describe('Auto-save Debounce', () => {
     it('should debounce rapid changes', async () => {
-      const debounceTime = 1500;
       let saveCount = 0;
       
       const debouncedSave = () => {

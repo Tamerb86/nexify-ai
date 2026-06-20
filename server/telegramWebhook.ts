@@ -127,7 +127,7 @@ export async function handleTelegramWebhook(req: Request, res: Response) {
       const generatedContent = typeof content === 'string' ? content : '';
 
       // Save to database
-      const result = await db.insert(posts).values({
+      await db.insert(posts).values({
         userId: link[0].userId,
         platform: "linkedin" as const,
         tone: "professional",

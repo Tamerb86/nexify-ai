@@ -99,7 +99,7 @@ export const telegramRouter = router({
     // Generate 3 alternative versions of a post
     generateAlternatives: protectedProcedure
       .input(z.object({ postId: z.number(), rawInput: z.string() }))
-      .mutation(async ({ ctx, input }) => {
+      .mutation(async ({ input }) => {
         const { invokeLLM } = await import("../_core/llm");
 
         const response = await invokeLLM({
@@ -126,7 +126,7 @@ export const telegramRouter = router({
     // Save post to "Mine innlegg" (already saved, just return success)
     savePost: protectedProcedure
       .input(z.object({ postId: z.number() }))
-      .mutation(async ({ ctx, input }) => {
+      .mutation(async () => {
         // Post is already in "posts" table, so it's already saved
         // This endpoint exists for UI consistency
         return { success: true, message: "Post is already saved in Mine innlegg" };
@@ -314,7 +314,7 @@ export const telegramRouter = router({
       .mutation(async ({ ctx, input }) => {
         const { getDb } = await import("../db");
         const { posts } = await import("../../drizzle/schema");
-        const { eq, and, sql } = await import("drizzle-orm");
+        const { eq, and } = await import("drizzle-orm");
         const db = await getDb();
         if (!db) throw new Error("Database not available");
 

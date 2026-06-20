@@ -80,7 +80,7 @@ export function trackUsage(req: Request, res: Response, next: NextFunction) {
  * Check for usage anomalies
  */
 async function checkAnomalies(metrics: UsageMetrics) {
-  const { sendUsageSpikAlert, sendAbuseAlert, sendLimitExceededAlert } = await import("./sentry");
+  const { sendUsageSpikAlert, sendAbuseAlert } = await import("./sentry");
   const userId = metrics.userId;
   const now = new Date();
   const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);

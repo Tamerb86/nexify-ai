@@ -83,7 +83,7 @@ export const vippsRouter = router({
    */
   getPaymentStatus: protectedProcedure
     .input(z.object({ orderId: z.string() }))
-    .query(async ({ ctx, input }: any) => {
+    .query(async ({ input }: any) => {
       if (!vippsService) {
         throw new Error("Vipps service not configured");
       }
@@ -102,7 +102,7 @@ export const vippsRouter = router({
    */
   cancelPayment: protectedProcedure
     .input(z.object({ orderId: z.string() }))
-    .mutation(async ({ ctx, input }: any) => {
+    .mutation(async ({ input }: any) => {
       if (!vippsService) {
         throw new Error("Vipps service not configured");
       }
@@ -129,7 +129,7 @@ export const vippsRouter = router({
         amount: z.number().positive(),
       })
     )
-    .mutation(async ({ ctx, input }: any) => {
+    .mutation(async ({ input }: any) => {
       if (!vippsService) {
         throw new Error("Vipps service not configured");
       }

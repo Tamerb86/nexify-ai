@@ -121,8 +121,8 @@ export async function getDailyTrends(geo: string = 'NO'): Promise<any> {
 export async function getInterestOverTime(
   keyword: string,
   geo: string = 'NO',
-  startTime?: Date,
-  endTime?: Date
+  _startTime?: Date,
+  _endTime?: Date
 ): Promise<any> {
   const cacheKey = `interest-over-time-${keyword}-${geo}`;
   

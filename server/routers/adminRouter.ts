@@ -102,7 +102,6 @@ export const adminRouter = router({
       if (!db) throw new Error("Database not available");
 
       const { users } = await import("../../drizzle/schema");
-      const { eq } = await import("drizzle-orm");
 
       const allUsers = await db.select().from(users);
 

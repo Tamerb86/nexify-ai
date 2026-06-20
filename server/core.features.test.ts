@@ -119,7 +119,7 @@ describe("Core Features Tests", () => {
         yearly: { price: 1910, posts: 1200, duration: "year" },
       };
 
-      Object.entries(plans).forEach(([planName, plan]) => {
+      Object.entries(plans).forEach(([, plan]) => {
         expect(plan.price).toBeGreaterThanOrEqual(0);
         expect(plan.posts).toBeGreaterThan(0);
         expect(plan.duration).toBeTruthy();

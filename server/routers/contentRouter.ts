@@ -135,7 +135,7 @@ export const contentRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const { posts } = await import("../../drizzle/schema");
-      const { eq, gte, sql } = await import("drizzle-orm");
+      const { sql } = await import("drizzle-orm");
       
       // Get posts from last 7 days
       const sevenDaysAgo = new Date();

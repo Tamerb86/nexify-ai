@@ -11,17 +11,6 @@ import { ProductKey, STRIPE_PRODUCTS } from "../stripe/products";
 import { getUserSubscription, updateSubscription, getUserPosts } from "../db";
 import { TRPCError } from "@trpc/server";
 
-// Helper function to determine subscription tier
-function getSubscriptionTier(subscription: Awaited<ReturnType<typeof getUserSubscription>>): "FREE" | "PRO" | "ENTERPRISE" {
-  if (!subscription || !subscription.stripeSubscriptionId) {
-    return "FREE";
-  }
-  if (subscription.status === "active") {
-    return "PRO"; // Default to PRO for active subscriptions
-  }
-  return "FREE";
-}
-
 export const paymentRouter = router({
   /**
    * Generate invoice PDF for download

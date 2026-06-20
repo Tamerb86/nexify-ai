@@ -151,7 +151,7 @@ function extractFavoriteWords(text: string): string[] {
 /**
  * Extract words that are avoided (rarely or never used)
  */
-function extractAvoidWords(text: string): string[] {
+function extractAvoidWords(_text: string): string[] {
   // This is a simplified approach - in reality, you'd compare against common word lists
   return [];
 }

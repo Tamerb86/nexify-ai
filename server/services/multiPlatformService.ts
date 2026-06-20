@@ -199,8 +199,8 @@ async function distributeTelegram(
  * Distribute to Twitter (placeholder - requires Twitter API v2)
  */
 async function distributeTwitter(
-  content: MultiPlatformContent,
-  config: Record<string, any>
+  _content: MultiPlatformContent,
+  _config: Record<string, any>
 ): Promise<DistributionResult> {
   // Twitter integration would require Twitter API v2 setup
   // This is a placeholder for future implementation
@@ -216,8 +216,8 @@ async function distributeTwitter(
  * Distribute to LinkedIn (placeholder - requires LinkedIn API)
  */
 async function distributeLinkedIn(
-  content: MultiPlatformContent,
-  config: Record<string, any>
+  _content: MultiPlatformContent,
+  _config: Record<string, any>
 ): Promise<DistributionResult> {
   // LinkedIn integration would require LinkedIn API setup
   // This is a placeholder for future implementation
@@ -233,8 +233,8 @@ async function distributeLinkedIn(
  * Distribute to Instagram (placeholder - requires Instagram API)
  */
 async function distributeInstagram(
-  content: MultiPlatformContent,
-  config: Record<string, any>
+  _content: MultiPlatformContent,
+  _config: Record<string, any>
 ): Promise<DistributionResult> {
   // Instagram integration would require Instagram API setup
   // This is a placeholder for future implementation

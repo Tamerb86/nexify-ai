@@ -23,7 +23,7 @@ export const calendarRouter = router({
         });
       }),
       
-    getUserSchedule: protectedProcedure.query(async ({ ctx }) => {
+    getUserSchedule: protectedProcedure.query(async () => {
       // Return empty for now - will be implemented with schedule feature
       return [];
     }),

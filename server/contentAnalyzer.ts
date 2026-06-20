@@ -397,8 +397,6 @@ function generateTips(
   platform: string,
   language: 'no' | 'en'
 ): string[] {
-  const tips: string[] = [];
-  
   const allTips = {
     no: [
       'Bruk storytelling for å skape emosjonell forbindelse',

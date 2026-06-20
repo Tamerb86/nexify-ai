@@ -879,7 +879,7 @@ export async function createOrUpdateUserInterests(
 // Trending Topics Functions
 // ============================================
 
-export async function getTrendingTopics(category?: string): Promise<TrendingTopic[]> {
+export async function getTrendingTopics(_category?: string): Promise<TrendingTopic[]> {
   const db = await getDb();
   if (!db) return [];
   

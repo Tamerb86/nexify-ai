@@ -127,7 +127,7 @@ export function registerGoogleOAuthRoutes(app: Express) {
         throw new Error("Invalid token payload from Google");
       }
 
-      const { sub: googleId, email, name, picture } = payload;
+      const { sub: googleId, email, name } = payload;
 
       // Use Google sub as openId (prefixed to avoid collision with Manus IDs)
       const openId = `google_${googleId}`;

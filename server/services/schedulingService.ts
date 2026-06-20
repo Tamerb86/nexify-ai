@@ -121,7 +121,7 @@ export async function getOptimalPostingTimes(
   }
 
   // Convert analytics to optimal times
-  return analytics.slice(0, 5).map((analytic, index) => ({
+  return analytics.slice(0, 5).map((analytic) => ({
     dayOfWeek: analytic.dayOfWeek,
     hour: analytic.hourOfDay,
     score: Math.round(Number(analytic.avgEngagementRate) * 10), // Convert to 0-100 scale

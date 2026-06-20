@@ -29,7 +29,7 @@ describe("End-to-End User Flows", () => {
         instagram: { minLength: 50, maxLength: 2200 },
       };
 
-      Object.entries(platforms).forEach(([platform, limits]) => {
+      Object.entries(platforms).forEach(([, limits]) => {
         expect(limits.minLength).toBeLessThan(limits.maxLength);
       });
     });

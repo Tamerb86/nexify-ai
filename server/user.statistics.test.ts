@@ -8,7 +8,7 @@ import { z } from "zod";
 
 describe("User Statistics and Invoices", () => {
   // Mock context
-  const mockCtx = {
+  const _mockCtx = {
     user: {
       id: 1,
       openId: "test-user-123",
