@@ -19,9 +19,7 @@ import {
 } from "recharts";
 import {
   TrendingUp,
-  Calendar,
   FileText,
-  Zap,
   Target,
   Clock,
 } from "lucide-react";

@@ -1,12 +1,9 @@
 import { Card } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
 import { Helmet } from 'react-helmet-async';
-import { ArrowLeft, Calendar, Clock, Eye, User } from "lucide-react";
-import SocialShare from "@/components/SocialShare";
+import { ArrowLeft, Calendar, Clock, User } from "lucide-react";
 import SocialShareButtons from "@/components/SocialShareButtons";
 import { useRoute, Link } from "wouter";
-import { useEffect } from "react";
-import { generateArticleSchema, setCanonicalUrl } from "@/lib/seoUtils";
 import { Button } from "@/components/ui/button";
 import DOMPurify from "dompurify";
 

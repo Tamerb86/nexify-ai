@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { Zap, TrendingUp, TrendingDown, Minus, Trophy, Target, Sparkles, Cloud, Save, Loader2 } from "lucide-react";
+import { Zap, TrendingUp, Trophy, Target, Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { PAGE_DESCRIPTIONS } from "@/lib/pageDescriptions";
 

@@ -8,7 +8,6 @@ import { SkeletonCard } from "@/components/SkeletonLoader";
 import { trpc } from "@/lib/trpc";
 import { useState } from "react";
 import { Users, Activity, TrendingUp, AlertCircle } from "lucide-react";
-import { toast } from "sonner";
 import { MemberDetailModal } from "@/components/MemberDetailModal";
 import { MemberFilters, MemberFiltersState } from "@/components/MemberFilters";
 import { BulkMemberActions } from "@/components/BulkMemberActions";

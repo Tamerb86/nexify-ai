@@ -5,7 +5,7 @@
 
 import { getDb } from "../db";
 import { schedulingPreferences, scheduledPosts, postingTimesAnalytics } from "../../drizzle/schema";
-import { eq, and, gte, lte, desc } from "drizzle-orm";
+import { eq, and, gte, desc } from "drizzle-orm";
 
 export interface OptimalTime {
   dayOfWeek: number;

@@ -1,5 +1,5 @@
-import { Shield, Lock, CheckCircle2, AlertCircle } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Shield, Lock, CheckCircle2 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface SecurityBadgeProps {
   language: "no" | "en";

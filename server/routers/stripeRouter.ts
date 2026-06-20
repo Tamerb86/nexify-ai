@@ -1,7 +1,6 @@
 // Extracted from server/routers.ts (app-layer feature router).
 import { protectedProcedure, router } from "../_core/trpc";
 import { z } from "zod";
-import { getUserSubscription } from "../db";
 
 export const stripeRouter = router({
     createCheckoutSession: protectedProcedure

@@ -1,7 +1,6 @@
 import { router, protectedProcedure } from "../_core/trpc";
 import { z } from "zod";
 import {
-  createPost,
   getPost,
   getUserPosts,
   updatePost,

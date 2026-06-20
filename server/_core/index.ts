@@ -14,11 +14,10 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import sitemapRoutes from "../routes/sitemapRoutes";
 import cookieParser from "cookie-parser";
-import { ipRateLimiter, userRateLimiter, aiRateLimiter, checkSubscriptionLimit, checkPlanLimit } from "./rateLimiter";
+import { ipRateLimiter, userRateLimiter, checkSubscriptionLimit, checkPlanLimit } from "./rateLimiter";
 import { checkRequestSize, validateContentMiddleware, checkSuspiciousActivity } from "./abuseProtection";
 import { trackUsage } from "./monitoring";
-import { configureSecurityHeaders, validateRequestHeaders, preventParameterPollution, enforceHttps, preventOpenRedirect } from "./securityHeaders";
-import { sanitizeInputs, preventNoSQLInjection, validateRequestSize, preventXXE, detectSQLInjectionPatterns } from "./inputSanitization";
+import { configureSecurityHeaders, enforceHttps } from "./securityHeaders";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {

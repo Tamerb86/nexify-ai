@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2, LogIn, LogOut, Edit2, Trash2, Eye } from "lucide-react";
 import { trpc } from "@/lib/trpc";
-import { toast } from "sonner";
 
 interface ActivityLogProps {
   open: boolean;

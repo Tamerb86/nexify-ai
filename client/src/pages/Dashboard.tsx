@@ -1,9 +1,8 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
+import { XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
 import { FileText, Zap, TrendingUp, Clock, Target, Sparkles, Search, ChevronLeft, ChevronRight, ArrowRight, Plus, Eye, Edit, Copy, Rocket, Gift, LayoutDashboard, Crown, Activity, Shield, BarChart3 } from "lucide-react";
 import { useLocation } from "wouter";
 import { getLoginUrl } from "@/const";
@@ -11,7 +10,6 @@ import { getLoginUrl } from "@/const";
 import { useState, useMemo } from "react";
 import { SkeletonCard } from "@/components/SkeletonLoader";
 import { EmptyStateWithImage } from "@/components/EmptyState";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
 const CHART_COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4'];

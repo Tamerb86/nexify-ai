@@ -4,8 +4,8 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Linkedin, Twitter, Instagram, Facebook, Trash2, CheckCircle2, AlertCircle } from "lucide-react";
-import { SecurityBadge, PrivacyNotice, OAuthFlowSteps } from "@/components/SecurityBadge";
+import { Loader2, Linkedin, Twitter, Instagram, Facebook, Trash2, CheckCircle2 } from "lucide-react";
+import { PrivacyNotice, OAuthFlowSteps } from "@/components/SecurityBadge";
 import { OAuthWarningDialog } from "@/components/OAuthWarningDialog";
 import { toast } from "sonner";
 

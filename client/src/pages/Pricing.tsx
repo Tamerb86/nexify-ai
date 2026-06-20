@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, Zap, Smartphone, TrendingUp, Sparkles, Loader2 } from "lucide-react";
+import { Check, Smartphone, TrendingUp, Sparkles } from "lucide-react";
 import { VippsPaymentDialog } from "@/components/VippsPayment";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";

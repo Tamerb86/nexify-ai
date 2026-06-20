@@ -5,6 +5,7 @@
 import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 import prettier from "eslint-config-prettier";
+import unusedImports from "eslint-plugin-unused-imports";
 import globals from "globals";
 
 export default tseslint.config(
@@ -58,12 +59,24 @@ export default tseslint.config(
 
   // Project-wide rule tuning. Kept lenient on purpose.
   {
+    plugins: { "unused-imports": unusedImports },
     rules: {
       // The codebase deliberately uses `any` at integration boundaries.
       "@typescript-eslint/no-explicit-any": "off",
-      "@typescript-eslint/no-unused-vars": [
+      // Let unused-imports own unused detection: it auto-removes unused IMPORTS
+      // (side-effect-free) on --fix, while only *reporting* unused variables
+      // (which may have side-effecting initializers — never auto-deleted).
+      "@typescript-eslint/no-unused-vars": "off",
+      "unused-imports/no-unused-imports": "warn",
+      "unused-imports/no-unused-vars": [
         "warn",
-        { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrors: "none" },
+        {
+          vars: "all",
+          varsIgnorePattern: "^_",
+          args: "after-used",
+          argsIgnorePattern: "^_",
+          caughtErrors: "none",
+        },
       ],
       "no-empty": ["warn", { allowEmptyCatch: true }],
       "no-constant-condition": ["error", { checkLoops: false }],

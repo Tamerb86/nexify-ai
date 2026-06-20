@@ -11,12 +11,9 @@ import {
   Sparkles, 
   ArrowRight, 
   Search,
-  Filter,
   RefreshCw,
   ExternalLink,
   Zap,
-  Target,
-  Lightbulb,
   Clock,
   Globe,
   Loader2

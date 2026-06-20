@@ -1,13 +1,11 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { PageHeader } from "@/components/PageHeader";
-import { PAGE_DESCRIPTIONS } from "@/lib/pageDescriptions";
 import {
   Dialog,
   DialogContent,
@@ -41,7 +39,6 @@ import {
   Sparkles,
   Clock,
   CheckCircle,
-  XCircle,
   Linkedin,
   Twitter,
   Instagram,

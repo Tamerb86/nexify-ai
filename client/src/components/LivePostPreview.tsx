@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { Linkedin, Twitter, Instagram, Facebook, Heart, MessageCircle, Share2, ThumbsUp, Repeat2, Bookmark, Send, MoreHorizontal } from "lucide-react";
+import { Instagram, Heart, MessageCircle, Share2, ThumbsUp, Repeat2, Bookmark, Send, MoreHorizontal } from "lucide-react";
 
 interface LivePostPreviewProps {
   content: string;

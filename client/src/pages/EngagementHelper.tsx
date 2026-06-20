@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { MessageSquare, Sparkles, Copy, CheckCircle2, Loader2, ThumbsUp, Heart, Lightbulb, Cloud, Save } from "lucide-react";
+import { MessageSquare, Sparkles, Copy, CheckCircle2, Loader2, ThumbsUp, Heart, Lightbulb } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { PAGE_DESCRIPTIONS } from "@/lib/pageDescriptions";
 

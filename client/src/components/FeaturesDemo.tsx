@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { 
-  Flame, TrendingUp, Mic, Image, Calendar, RefreshCw, Brain, Layers, Globe, Lightbulb,
-  ArrowRight, CheckCircle2, Sparkles, BarChart3, Star
+  Flame, TrendingUp, Mic, Image, Brain,
+  ArrowRight, CheckCircle2, Sparkles
 } from "lucide-react";
 
 const DEMO_SCENARIOS = [

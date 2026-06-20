@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { UserEditModal } from "@/components/UserEditModal";
 import { ActivityLog } from "@/components/ActivityLog";
 import { exportToExcel, exportToCSV, formatUsersForExport, generateFilename } from "@/lib/exportUtils";
@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/PageHeader";
 import { Breadcrumb } from "@/components/Breadcrumb";
-import { AlertCircle, Users, UserCheck, Loader2, Trash2, Edit2, Search } from "lucide-react";
+import { AlertCircle, Users, Loader2, Trash2, Edit2, Search } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 

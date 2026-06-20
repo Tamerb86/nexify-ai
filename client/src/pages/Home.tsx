@@ -1,20 +1,14 @@
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { getLoginUrl } from "@/const";
 import { Link } from "wouter";
 import { 
   Zap, 
-  TrendingUp, 
-  Users, 
-  Clock, 
   CheckCircle2, 
   ArrowRight,
   Sparkles,
   Target,
-  BarChart3,
   MessageSquare,
   Star,
   Shield,
@@ -31,12 +25,9 @@ import {
   Play,
   Globe,
   Lightbulb,
-  BookOpen,
   PenTool,
   Award,
-  Rocket,
-  Eye,
-  MousePointer
+  Rocket
 } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import HeroDemo from "@/components/HeroDemo";

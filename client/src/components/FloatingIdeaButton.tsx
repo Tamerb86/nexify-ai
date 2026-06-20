@@ -22,7 +22,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Plus, Lightbulb, X } from "lucide-react";
+import { Plus, Lightbulb } from "lucide-react";
 import { toast } from "sonner";
 
 export default function FloatingIdeaButton() {

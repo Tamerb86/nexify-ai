@@ -1,5 +1,4 @@
 import * as cron from 'node-cron';
-import { getDb } from './db';
 import { posts } from '../drizzle/schema';
 import { eq, and, lte } from 'drizzle-orm';
 import { createLinkedInPost } from './linkedinService';

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Clock, Zap, TrendingUp, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Clock, Zap, TrendingUp, CheckCircle2 } from "lucide-react";
 
 export default function PricingDemo() {
   const [showSavings, setShowSavings] = useState(false);

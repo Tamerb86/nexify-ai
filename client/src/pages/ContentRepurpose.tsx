@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Recycle, ArrowRight, Sparkles, TrendingUp, Copy, Cloud, Save, Loader2, RefreshCw, Shuffle, Users, FileEdit, Lightbulb, CheckCircle2, ArrowDown, Zap } from "lucide-react";
+import { Recycle, ArrowRight, Sparkles, TrendingUp, Cloud, Loader2, RefreshCw, Shuffle, Users, FileEdit, Lightbulb, CheckCircle2, ArrowDown, Zap } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";

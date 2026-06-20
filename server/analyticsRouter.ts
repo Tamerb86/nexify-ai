@@ -1,7 +1,7 @@
 import { router, protectedProcedure } from "./_core/trpc";
 import { z } from "zod";
 import { getDb } from "./db";
-import { postAnalytics, posts } from "../drizzle/schema";
+import { postAnalytics } from "../drizzle/schema";
 import { eq, and, gte, lte, desc, sql } from "drizzle-orm";
 
 /**

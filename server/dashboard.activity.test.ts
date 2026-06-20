@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeAll } from "vitest";
-import { posts } from "../drizzle/schema";
 
 // Mock database
 const mockDb = {

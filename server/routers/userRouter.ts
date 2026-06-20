@@ -3,7 +3,6 @@ import { protectedProcedure, router } from "../_core/trpc";
 import { z } from "zod";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "../_core/cookies";
-import { storagePut } from "../storage";
 import { getUserPosts, getUserSubscription, getUserPreference } from "../db";
 
 export const userRouter = router({

@@ -2,7 +2,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/PageHeader";
 import { SecurityBadge, PrivacyNotice, OAuthFlowSteps } from "@/components/SecurityBadge";
-import { Shield, Lock, CheckCircle2, AlertCircle, Eye, Key } from "lucide-react";
+import { Lock, CheckCircle2, Eye, Key } from "lucide-react";
 
 export default function Security() {
   const { language } = useLanguage();

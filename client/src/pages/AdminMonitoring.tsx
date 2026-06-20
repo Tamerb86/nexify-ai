@@ -4,7 +4,7 @@ import { useRouter } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle, TrendingUp, Users, AlertCircle, Activity } from "lucide-react";
+import { AlertTriangle, TrendingUp, AlertCircle, Activity } from "lucide-react";
 
 interface SystemMetrics {
   totalRequests: number;

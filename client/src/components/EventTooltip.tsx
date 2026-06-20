@@ -5,7 +5,7 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, ExternalLink } from "lucide-react";
+import { Edit, Trash2 } from "lucide-react";
 
 interface EventTooltipProps {
   event: {

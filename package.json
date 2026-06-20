@@ -148,6 +148,7 @@
     "eslint": "^9",
     "eslint-config-prettier": "^9",
     "eslint-plugin-react-hooks": "^5",
+    "eslint-plugin-unused-imports": "^4",
     "globals": "^15",
     "lighthouse": "^13.2.0",
     "pnpm": "^10.15.1",

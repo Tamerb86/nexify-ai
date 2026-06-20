@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
 import { Helmet } from 'react-helmet-async';
-import { BookOpen, Clock, Eye, Tag, Search, X } from "lucide-react";
+import { BookOpen, Clock, Eye, Search, X } from "lucide-react";
 import { Link } from "wouter";
 import { useState, useMemo } from "react";
 

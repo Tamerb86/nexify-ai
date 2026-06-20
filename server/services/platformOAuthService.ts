@@ -1,5 +1,5 @@
 import { getDb } from "../db";
-import { platformIntegrations, PlatformIntegration, InsertPlatformIntegration } from "../../drizzle/schema";
+import { platformIntegrations, PlatformIntegration } from "../../drizzle/schema";
 import { eq, and } from "drizzle-orm";
 import { encryptSecret, decryptSecret } from "../_core/tokenCrypto";
 

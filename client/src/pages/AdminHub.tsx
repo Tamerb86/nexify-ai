@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { trpc } from "@/lib/trpc";
 import {
   Users,
   BarChart3,
@@ -14,7 +13,6 @@ import {
   TrendingUp,
   CreditCard,
   AlertCircle,
-  Eye,
   Zap,
   Clock,
   Activity,

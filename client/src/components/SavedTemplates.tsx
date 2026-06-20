@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Bookmark, Trash2, Copy, Loader2, FolderOpen, Plus, ArrowRight, Linkedin, Twitter, Instagram, Facebook } from "lucide-react";
+import { Bookmark, Trash2, Loader2, FolderOpen, Plus, ArrowRight, Linkedin, Twitter, Instagram, Facebook } from "lucide-react";
 import { toast } from "sonner";
 
 const platformIcons: Record<string, React.ReactNode> = {

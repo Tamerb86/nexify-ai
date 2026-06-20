@@ -15,7 +15,6 @@ import {
   Zap,
   ArrowRight,
   FileText,
-  MessageSquare,
   Target,
   RefreshCw,
   Lightbulb,

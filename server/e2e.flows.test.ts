@@ -3,7 +3,7 @@
  * Tests critical user flows from start to finish
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect } from "vitest";
 
 describe("End-to-End User Flows", () => {
   describe("Complete Content Generation Flow", () => {

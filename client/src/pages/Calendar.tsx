@@ -13,7 +13,6 @@ import {
   FileText,
   Clock,
   CheckCircle2,
-  Send,
   AlertCircle,
   Sparkles,
   ArrowRight,

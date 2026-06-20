@@ -12,7 +12,7 @@ import {
   postAuditLog,
   backupSchedule,
 } from "../../drizzle/schema";
-import { eq, and, gte, lte, desc } from "drizzle-orm";
+import { eq, and, lte, desc } from "drizzle-orm";
 
 /**
  * Create a new post

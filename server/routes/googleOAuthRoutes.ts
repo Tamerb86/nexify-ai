@@ -10,7 +10,6 @@ import { OAuth2Client } from "google-auth-library";
 import * as db from "../db";
 import { getSessionCookieOptions } from "../_core/cookies";
 import { sdk } from "../_core/sdk";
-import { ENV } from "../_core/env";
 
 function getGoogleRedirectUri(req: Request): string {
   // Vercel production URL

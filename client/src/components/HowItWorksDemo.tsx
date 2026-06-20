@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Target, PenTool, Sparkles, CheckCircle2, ArrowRight, Linkedin, Twitter, Instagram } from "lucide-react";
+import { Target, PenTool, Sparkles, CheckCircle2, Linkedin, Twitter, Instagram } from "lucide-react";
 
 export default function HowItWorksDemo() {
   const [activeStep, setActiveStep] = useState(0);
