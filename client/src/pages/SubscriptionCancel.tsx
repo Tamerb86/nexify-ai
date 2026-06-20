@@ -5,7 +5,7 @@ import { XCircle, ArrowLeft, HelpCircle } from "lucide-react";
 import { useLocation } from "wouter";
 
 export default function SubscriptionCancel() {
-  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { loading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
 
   if (authLoading) {

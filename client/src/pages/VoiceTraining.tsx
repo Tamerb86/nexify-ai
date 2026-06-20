@@ -29,7 +29,7 @@ import { PAGE_DESCRIPTIONS } from "@/lib/pageDescriptions";
 
 export default function VoiceTraining() {
   const { isAuthenticated, loading: authLoading } = useAuth();
-  const [, setLocation] = useLocation();
+  useLocation();
   const [newSample, setNewSample] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 

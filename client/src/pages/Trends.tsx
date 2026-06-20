@@ -25,7 +25,7 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { PAGE_DESCRIPTIONS } from "@/lib/pageDescriptions";
 
-const CATEGORIES = [
+const _CATEGORIES = [
   { value: "all", label: "Alle kategorier" },
   { value: "tech", label: "🖥️ Teknologi" },
   { value: "business", label: "💼 Business" },
@@ -48,7 +48,7 @@ export default function Trends() {
   const { isAuthenticated, loading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedCategory] = useState("all");
   const [selectedPlatform, setSelectedPlatform] = useState("all");
 
   const { data: subscription } = trpc.user.getSubscription.useQuery(undefined, {

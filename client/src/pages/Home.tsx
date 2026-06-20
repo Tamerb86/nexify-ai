@@ -73,7 +73,7 @@ function useInView(threshold = 0.2) {
 
 export default function Home() {
   const { user } = useAuth();
-  const { t } = useLanguage();
+  useLanguage();
   const statsSection = useInView(0.3);
   const featuresSection = useInView(0.1);
   const pricingSection = useInView(0.1);

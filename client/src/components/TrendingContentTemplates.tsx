@@ -16,7 +16,7 @@ export function TrendingContentTemplates({
   onApplyTemplate,
 }: TrendingContentTemplatesProps) {
   const [templates, setTemplates] = useState<any[]>([]);
-  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  useState<string | null>(null);
 
   useEffect(() => {
     // Generate templates based on keyword and platform

@@ -43,7 +43,7 @@ export default function Calendar() {
     isLoading,
     refetch,
   } = trpc.content.getScheduledPosts.useQuery();
-  const utils = trpc.useUtils();
+  trpc.useUtils();
 
   // Mutation to reschedule post
   const reschedulePost = trpc.content.reschedule.useMutation({
@@ -120,7 +120,7 @@ export default function Calendar() {
   };
 
   // Handle delete event
-  const handleDeleteEvent = (eventId: string) => {
+  const handleDeleteEvent = (_eventId: string) => {
     if (confirm("Er du sikker på at du vil slette dette innlegget?")) {
       // TODO: Implement delete mutation
     }
@@ -187,7 +187,7 @@ export default function Calendar() {
     }
   };
 
-  const getPlatformLabel = (platform: string) => {
+  const _getPlatformLabel = (platform: string) => {
     switch (platform) {
       case "linkedin":
         return "LinkedIn";

@@ -11,9 +11,9 @@ import { PageHeader } from "@/components/PageHeader";
 import { PAGE_DESCRIPTIONS } from "@/lib/pageDescriptions";
 
 export default function WeeklyReport() {
-  const { data: user } = trpc.auth.me.useQuery();
+  trpc.auth.me.useQuery();
   const { data: subscription } = trpc.user.getSubscription.useQuery();
-  const { data: reportSettings } = trpc.reports.getSettings.useQuery();
+  trpc.reports.getSettings.useQuery();
   const [email, setEmail] = useState("");
   const [enabled, setEnabled] = useState(false);
 

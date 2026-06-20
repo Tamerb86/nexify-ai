@@ -25,7 +25,7 @@ import { SmartSchedulingSuggestions } from "@/components/SmartSchedulingSuggesti
 
 /* ─── LinkedIn Sub-Components ─── */
 
-function PostToLinkedInButton({ content, platform }: { content: string; platform: string }) {
+function PostToLinkedInButton({ content }: { content: string; platform: string }) {
   const { data: connectionStatus } = trpc.linkedin.getConnectionStatus.useQuery();
   const postMutation = trpc.linkedin.createPost.useMutation({
     onSuccess: () => { toast.success("Publisert til LinkedIn!"); },
@@ -93,7 +93,7 @@ function LinkedInStatusBadge() {
 
 export default function Generate() {
   const { isAuthenticated, loading: authLoading } = useAuth();
-  const [location, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
 
   // Undo/Redo for generated content
   const { value: generatedContent, set: setGeneratedContent, undo, redo, canUndo, canRedo } = useUndoRedo("");
@@ -103,7 +103,7 @@ export default function Generate() {
   const [tone, setTone] = useState<"professional" | "casual" | "friendly" | "formal" | "humorous">("professional");
   const [length, setLength] = useState<"short" | "medium" | "long">("medium");
   const [keywords, setKeywords] = useState("");
-  const [postsRemaining, setPostsRemaining] = useState<number | null>(null);
+  const [postsRemaining] = useState<number | null>(null);
 
   // Keyboard shortcuts for undo/redo
   useEffect(() => {
@@ -244,7 +244,6 @@ export default function Generate() {
   });
 
   // Posts are auto-saved when generated. Navigate to posts page to see them.
-  const handleGoToPosts = () => setLocation("/posts");
 
   const handleGenerate = () => {
     if (!isAuthenticated) {

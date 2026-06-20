@@ -13,7 +13,7 @@ import { Eye, EyeOff, Check, X } from "lucide-react";
 
 export default function AdminSettings() {
   const { isAuthenticated, loading: authLoading, user } = useAuth();
-  const [, setLocation] = useLocation();
+  useLocation();
 
   // Check if user is admin
   const isAdmin = user?.role === "admin";

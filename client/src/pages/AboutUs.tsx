@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2, Target, Heart, Users, Lightbulb, TrendingUp, Mail, Globe } from "lucide-react";
 
 export default function AboutUs() {
-  const { t } = useLanguage();
+  useLanguage();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">

@@ -21,7 +21,7 @@ import { toast } from "sonner";
 
 export function UsersManagement() {
   const { user } = useAuth();
-  const [, setLocation] = useLocation();
+  useLocation();
   
   // Check if user is admin
   const isAdmin = user && "role" in user && user.role === "admin";
@@ -57,7 +57,7 @@ export function UsersManagement() {
   );
 
   // Mutations
-  const updateRoleMutation = trpc.admin.updateUserRole.useMutation({
+  trpc.admin.updateUserRole.useMutation({
     onSuccess: () => {
       toast.success("User role updated successfully");
       refetchUsers();

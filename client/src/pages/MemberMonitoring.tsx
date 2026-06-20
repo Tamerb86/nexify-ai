@@ -16,13 +16,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 export default function MemberMonitoring() {
   // All hooks MUST be called at the top level, before any conditional returns
   const { isAuthenticated, loading: authLoading, user } = useAuth();
-  const [, setLocation] = useLocation();
+  useLocation();
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const [limit] = useState(10);
   const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set());
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [filters, setFilters] = useState<MemberFiltersState | null>(null);
+  const [, setFilters] = useState<MemberFiltersState | null>(null);
 
   // Fetch members list - always called
   const { data: membersData, isLoading: membersLoading } = trpc.memberMonitoring.getMembersList.useQuery({

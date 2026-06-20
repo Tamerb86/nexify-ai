@@ -9,7 +9,7 @@ import { trpc } from "@/lib/trpc";
 import { AlertCircle, CheckCircle, Clock, Plus, Send } from "lucide-react";
 
 export function SupportTickets() {
-  const { user } = useAuth();
+  useAuth();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
   const [formData, setFormData] = useState({ title: "", description: "", priority: "normal" });
@@ -20,7 +20,7 @@ export function SupportTickets() {
     trpc.support.getMyTickets.useQuery();
 
   // Fetch selected ticket details
-  const { data: ticketDetail, isLoading: ticketLoading } = 
+  const { data: ticketDetail } = 
     trpc.support.getTicketDetails.useQuery(
       { ticketId: selectedTicketId || 0 },
       { enabled: !!selectedTicketId }

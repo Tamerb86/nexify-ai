@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import confetti from "canvas-confetti";
 
 export default function SubscriptionSuccess() {
-  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { loading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
   const [showConfetti, setShowConfetti] = useState(false);
 

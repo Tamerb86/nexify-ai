@@ -13,11 +13,9 @@ interface ContentActionButtonsProps {
 
 export const ContentActionButtons: React.FC<ContentActionButtonsProps> = ({
   content,
-  contentId,
   onEdit,
   onDelete,
-  onShare,
-  platform = 'general'
+  onShare
 }) => {
 
   const [copied, setCopied] = useState(false);

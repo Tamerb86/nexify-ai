@@ -18,8 +18,8 @@ interface Message {
 
 export default function Coach() {
   const { isAuthenticated, loading: authLoading } = useAuth();
-  const { t, language } = useLanguage();
-  const [, setLocation] = useLocation();
+  const { language } = useLanguage();
+  useLocation();
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",

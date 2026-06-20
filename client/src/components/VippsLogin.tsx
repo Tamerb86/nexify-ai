@@ -21,7 +21,7 @@ function generateRandomState(): string {
 /**
  * Vipps Login Button Component
  */
-export function VippsLoginButton({ onSuccess, onError, className = "" }: VippsLoginProps) {
+export function VippsLoginButton({ onError, className = "" }: VippsLoginProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

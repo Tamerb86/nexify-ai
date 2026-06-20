@@ -20,7 +20,6 @@ export function AdminDashboard() {
   }, [user, setLocation]);
 
   // Fetch admin statistics (placeholder for now)
-  const statsLoading = false;
   const stats = null;
 
   // Note: Support stats would come from support router if implemented
@@ -32,7 +31,6 @@ export function AdminDashboard() {
     closed: 0,
     urgent: 0,
   } : undefined;
-  const supportLoading = statsLoading;
 
   const { data: allUsers, isLoading: usersLoading } = trpc.admin.getAllUsers.useQuery(
     { page: 1, limit: 100 },

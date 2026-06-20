@@ -225,7 +225,7 @@ function SubscriptionCard({ language }: { language: "no" | "en" }) {
 
 function LinkedInConnectionStatus({ language }: { language: "no" | "en" }) {
   const { data: connectionStatus, isLoading, refetch } = trpc.linkedin.getConnectionStatus.useQuery();
-  const { data: authUrl } = trpc.linkedin.getAuthUrl.useQuery(undefined, {
+  trpc.linkedin.getAuthUrl.useQuery(undefined, {
     enabled: false, // Don't fetch automatically
   });
   const disconnectMutation = trpc.linkedin.disconnect.useMutation({
@@ -492,7 +492,7 @@ function DeleteAccountDialog({ language }: { language: "no" | "en" }) {
 export default function Settings() {
   const { user, isAuthenticated, loading: authLoading, logout } = useAuth();
   const { t, language, setLanguage } = useLanguage();
-  const [, setLocation] = useLocation();
+  useLocation();
   const [linkedinClientId, setLinkedinClientId] = useState("");
   const [linkedinClientSecret, setLinkedinClientSecret] = useState("");
 

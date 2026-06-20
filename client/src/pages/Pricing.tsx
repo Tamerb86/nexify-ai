@@ -108,7 +108,7 @@ export function Pricing() {
   const [, setLocation] = useLocation();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [showVippsPayment, setShowVippsPayment] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
 
   const { data: currentSubscription } = trpc.payment.getCurrentSubscription.useQuery(
     undefined,

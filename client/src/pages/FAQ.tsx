@@ -52,7 +52,6 @@ export default function FAQ() {
     return groups;
   }, [filteredFAQs]);
 
-  const totalResults = filteredFAQs.length;
 
   const handleClearSearch = () => {
     setSearchQuery("");

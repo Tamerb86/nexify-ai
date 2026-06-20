@@ -7,10 +7,10 @@ import { CreditCard, Download, AlertCircle, CheckCircle2, Loader2 } from "lucide
 import { toast } from "sonner";
 
 export default function BillingManagement() {
-  const { data: user } = trpc.auth.me.useQuery();
+  trpc.auth.me.useQuery();
   const { data: subscription, isLoading: subscriptionLoading } = trpc.user.getSubscription.useQuery();
   const { data: invoices, isLoading: invoicesLoading } = trpc.user.getInvoices.useQuery();
-  const [selectedPlan, setSelectedPlan] = useState<"free" | "pro">("free");
+  const [, setSelectedPlan] = useState<"free" | "pro">("free");
 
   const createCheckoutMutation = trpc.stripe.createCheckoutSession.useMutation({
     onSuccess: (data) => {

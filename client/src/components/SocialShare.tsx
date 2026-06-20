@@ -8,7 +8,7 @@ interface SocialShareProps {
   description?: string;
 }
 
-export default function SocialShare({ url, title, description }: SocialShareProps) {
+export default function SocialShare({ url, title }: SocialShareProps) {
   const [copied, setCopied] = useState(false);
 
   const shareUrls = {

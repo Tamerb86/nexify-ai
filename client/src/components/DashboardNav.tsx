@@ -17,7 +17,7 @@ import {
 const SIDEBAR_COLLAPSED_KEY = "sidebar-collapsed";
 
 export default function DashboardNav() {
-  const [location, setLocation] = useLocation();
+  const [location] = useLocation();
   const { user } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {

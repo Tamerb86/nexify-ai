@@ -24,8 +24,8 @@ export default function EngagementHelper() {
   const [copied, setCopied] = useState(false);
 
   // Auto-save draft functionality
-  const [draftSaved, setDraftSaved] = useState(false);
-  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [, setDraftSaved] = useState(false);
+  const [, setLastSavedAt] = useState<Date | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const { data: existingDraft } = trpc.drafts.get.useQuery({ pageType: "engagement" });

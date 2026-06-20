@@ -15,14 +15,14 @@ export default function ABTesting() {
   const [topic, setTopic] = useState("");
   const [variantA, setVariantA] = useState("");
   const [variantB, setVariantB] = useState("");
-  const [winner, setWinner] = useState<"A" | "B" | null>(null);
+  useState<"A" | "B" | null>(null);
 
   const { data: tests, refetch } = trpc.abtest.list.useQuery();
   const { data: subscription } = trpc.user.getSubscription.useQuery();
 
   // Auto-save draft functionality
-  const [draftSaved, setDraftSaved] = useState(false);
-  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [, setDraftSaved] = useState(false);
+  const [, setLastSavedAt] = useState<Date | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const { data: existingDraft } = trpc.drafts.get.useQuery({ pageType: "ab_test" });

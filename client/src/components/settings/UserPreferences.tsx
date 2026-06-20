@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 
 export default function UserPreferences() {
-  const { data: usagePreferences, isLoading: preferencesLoading } = trpc.user.getUsagePreferences.useQuery();
+  const { data: usagePreferences } = trpc.user.getUsagePreferences.useQuery();
   const updatePreferencesMutation = trpc.user.updateUsagePreferences.useMutation({
     onSuccess: () => {
       toast.success("Innstillinger lagret!");

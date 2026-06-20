@@ -19,7 +19,7 @@ interface PlatformStats {
 }
 
 const Progress: React.FC = () => {
-  const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('month');
+  useState<'week' | 'month' | 'year'>('month');
 
   // Sample data - in production, this would come from the API
   const progressData: ProgressData[] = [

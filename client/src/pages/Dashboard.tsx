@@ -16,12 +16,12 @@ const CHART_COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#0
 
 export default function Dashboard() {
   const { user, loading: authLoading, isAuthenticated } = useAuth();
-  const { t, language } = useLanguage();
+  const { language } = useLanguage();
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPlatform, setSelectedPlatform] = useState<string | "all">("all");
   const [selectedStatus, setSelectedStatus] = useState<string | "all">("all");
-  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "platform">("newest");
+  const [sortBy] = useState<"newest" | "oldest" | "platform">("newest");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -564,7 +564,7 @@ export default function Dashboard() {
               </div>
             ) : paginatedPosts.length > 0 ? (
               <div className="space-y-2">
-                {paginatedPosts.map((post, index) => {
+                {paginatedPosts.map((post) => {
                   const platformConfig = getPlatformConfig(post.platform);
                   const statusConfig = getStatusBadge(post.status);
                   return (

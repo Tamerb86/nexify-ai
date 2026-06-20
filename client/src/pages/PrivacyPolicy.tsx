@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Shield, Mail, Database, Lock, Eye, UserCheck } from "lucide-react";
 
 export default function PrivacyPolicy() {
-  const { t } = useLanguage();
+  useLanguage();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">

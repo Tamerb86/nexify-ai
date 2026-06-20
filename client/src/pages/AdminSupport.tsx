@@ -28,7 +28,7 @@ export function AdminSupport() {
     );
 
   // Fetch selected ticket details
-  const { data: ticketDetail, isLoading: ticketLoading } = 
+  const { data: ticketDetail } = 
     trpc.support.getTicketDetails.useQuery(
       { ticketId: selectedTicketId || 0 },
       { enabled: !!selectedTicketId }

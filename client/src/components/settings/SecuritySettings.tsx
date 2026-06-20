@@ -23,7 +23,7 @@ export function SecuritySettings({ language }: SecuritySettingsProps) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
-  const [activityLogs, setActivityLogs] = useState<any[]>([]);
+  const [activityLogs] = useState<any[]>([]);
   const [showActivityLogs, setShowActivityLogs] = useState(false);
 
   const labels = {
