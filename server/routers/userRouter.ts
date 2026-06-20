@@ -192,13 +192,16 @@ export const userRouter = router({
       // Get user data (already in ctx.user)
       const preferenceData = await getUserPreference(ctx.user.id);
       
-      // Get user's posts and other data for export
-      const _userPosts = await getUserPosts(ctx.user.id);
-      const _userSubscription = await getUserSubscription(ctx.user.id);
-      
+      // Get the user's own posts and subscription so the GDPR export is
+      // complete (both are scoped to ctx.user.id — never another user's data).
+      const userPosts = await getUserPosts(ctx.user.id);
+      const userSubscription = await getUserSubscription(ctx.user.id);
+
       return {
         user: ctx.user,
         preferences: preferenceData,
+        posts: userPosts,
+        subscription: userSubscription,
         exportedAt: new Date().toISOString(),
       };
     }),
