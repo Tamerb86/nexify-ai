@@ -14,6 +14,7 @@ CREATE TABLE `stripe_payment_intents` (
 	CONSTRAINT `stripe_payment_intents_stripe_payment_intent_id_unique` UNIQUE(`stripe_payment_intent_id`)
 );
 --> statement-breakpoint
+CREATE TABLE `subscription_history` (
 	`id` int AUTO_INCREMENT NOT NULL,
 	`user_id` int NOT NULL,
 	`subscription_id` int,

@@ -183,6 +183,13 @@
       "when": 1781951133999,
       "tag": "0025_add_plan_id_webhook_events_payment_orders",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "5",
+      "when": 1781951200000,
+      "tag": "0026_add_missing_linkedin_vipps_tables",
+      "breakpoints": true
     }
   ]
 }

@@ -52,8 +52,12 @@ async function fetchFromGoogleTrends(
   region: string = "NO"
 ): Promise<TrendingKeyword[]> {
   try {
-    // GoogleTrendsApi is a singleton instance exported as default
-    const response = await (GoogleTrendsApi as any).dailyTrends({
+    // The package's default export is double-wrapped under CJS/ESM interop
+    // (`import GoogleTrendsApi from ...` yields `{ default: <instance> }`), so the
+    // real singleton — with dailyTrends() — lives on `.default`. Without this the
+    // call throws "dailyTrends is not a function" and trends silently come back empty.
+    const api = (GoogleTrendsApi as any).default ?? GoogleTrendsApi;
+    const response = await api.dailyTrends({
       geo: region,
     });
 
@@ -65,11 +69,19 @@ async function fetchFromGoogleTrends(
     const trends = Array.isArray(response.data) ? response.data : [];
 
     return trends.slice(0, 10).map((trend: Record<string, any>) => ({
-      keyword: trend.title?.query || trend.title || "Unknown",
-      trendScore: 80 + Math.random() * 20, // Simulate trend score (80-100)
-      growth: "up",
-      searchVolume: Math.floor(Math.random() * 100000) + 10000, // Simulated volume
-      relatedKeywords: trend.relatedQueries?.map((q: Record<string, any>) => q.query) || [],
+      // v0.3 of the lib returns { keyword, traffic, trafficGrowthRate, relatedKeywords }.
+      // Keep the old { title.query, relatedQueries } shape as a fallback.
+      keyword: trend.keyword || trend.title?.query || trend.title || "Unknown",
+      trendScore: 80 + Math.random() * 20, // Lib has no 0-100 score — keep a synthetic one
+      growth:
+        typeof trend.trafficGrowthRate === "number" && trend.trafficGrowthRate < 0
+          ? "down"
+          : "up",
+      searchVolume: trend.traffic ?? Math.floor(Math.random() * 100000) + 10000,
+      relatedKeywords:
+        trend.relatedKeywords ||
+        trend.relatedQueries?.map((q: Record<string, any>) => q.query) ||
+        [],
     }));
   } catch (error) {
     console.error("Error fetching from Google Trends:", error);
