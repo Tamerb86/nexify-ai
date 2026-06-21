@@ -154,9 +154,13 @@ async function startServer() {
   // Google OAuth routes (standalone, sets the app session cookie)
   registerGoogleOAuthRoutes(app);
   
-  // Development login route (only in development, and only with an explicit opt-in flag)
-  if (process.env.NODE_ENV === "development" && process.env.ENABLE_DEV_LOGIN === "true") {
-    app.post("/api/auth/dev-login", async (req, res) => {
+  // Demo/dev login — gated behind an explicit opt-in flag (ENABLE_DEV_LOGIN).
+  // Signs you in without OAuth. Accepts GET so it can be opened in a browser.
+  if (process.env.ENABLE_DEV_LOGIN === "true") {
+    if (process.env.NODE_ENV === "production") {
+      console.warn("[SECURITY] dev-login is ENABLED in production (ENABLE_DEV_LOGIN=true) — local/demo only; NEVER enable on a public deployment.");
+    }
+    app.all("/api/auth/dev-login", async (req, res) => {
       try {
         const { COOKIE_NAME, ONE_YEAR_MS } = await import("@shared/const");
         const { getSessionCookieOptions } = await import("./cookies");
@@ -175,7 +179,25 @@ async function startServer() {
         });
         
         console.log("[Dev Login] User created/updated");
-        
+
+        // Ensure the demo user has a trial subscription so the app is usable.
+        try {
+          const devUser = await dbModule.getUserByOpenId("dev_user_12345");
+          if (devUser) {
+            const existing = await dbModule.getUserSubscription(devUser.id);
+            if (!existing) {
+              await dbModule.createSubscription({
+                userId: devUser.id,
+                status: "trial",
+                trialPostsLimit: 50,
+                postsGenerated: 0,
+              } as any);
+            }
+          }
+        } catch (e) {
+          console.warn("[Dev Login] subscription seed skipped:", (e as Error)?.message);
+        }
+
         // Create session token using SDK
         const sessionToken = await sdk.createSessionToken("dev_user_12345", {
           name: "Dev User",
