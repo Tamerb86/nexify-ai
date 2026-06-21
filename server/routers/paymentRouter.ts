@@ -323,10 +323,11 @@ export const paymentRouter = router({
       // Determine tier based on subscription status
       const tier = subscription.stripeSubscriptionId && subscription.status === "active" ? "PRO" : "FREE";
 
+      // Post limits mirror @shared/pricing (FREE=2, PRO=15, PREMIUM=30).
       const limits = {
-        FREE: { posts: 5, platforms: 1, aiImages: 0 },
-        PRO: { posts: 100, platforms: 5, aiImages: 50 },
-        ENTERPRISE: { posts: -1, platforms: 5, aiImages: -1 },
+        FREE: { posts: 2, platforms: 4, aiImages: 0 },
+        PRO: { posts: 15, platforms: 4, aiImages: 15 },
+        ENTERPRISE: { posts: 30, platforms: 4, aiImages: 30 },
       };
 
       const tierLimits = limits[tier as keyof typeof limits] || limits.FREE;

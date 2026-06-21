@@ -195,7 +195,7 @@ async function startServer() {
               await dbModule.createSubscription({
                 userId: devUser.id,
                 status: "trial",
-                trialPostsLimit: 50,
+                trialPostsLimit: 2,
                 postsGenerated: 0,
               } as any);
             }

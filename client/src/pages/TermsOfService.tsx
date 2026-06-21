@@ -112,7 +112,7 @@ export default function TermsOfService() {
                 Pro-abonnementet koster 199 NOK per måned og gir tilgang til:
               </p>
               <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                <li>100 innlegg per måned</li>
+                <li>15 innlegg per måned</li>
                 <li>Alle plattformer</li>
                 <li>AI Content Coach</li>
                 <li>Ubegrensede lagrede eksempler</li>

@@ -117,7 +117,7 @@ export const userRouter = router({
           userId: ctx.user.id,
           status: "trial",
           postsGenerated: 0,
-          trialPostsLimit: 5,
+          trialPostsLimit: 2, // mirrors FREE_POSTS in @shared/pricing
         });
       }
       

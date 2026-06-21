@@ -6,106 +6,18 @@ import { VippsPaymentDialog } from "@/components/VippsPayment";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { PLANS, yearlyNOK, yearlyPerMonthNOK, ANNUAL_DISCOUNT } from "@shared/pricing";
 
-interface PricingPlan {
-  id: string;
-  name: string;
-  price: number;
-  currency: string;
-  period: string;
-  description: string;
-  badge?: string;
-  badgeColor?: string;
-  features: string[];
-  cta: string;
-  highlighted?: boolean;
-}
+type Billing = "monthly" | "yearly";
+const SAVE_PCT = Math.round(ANNUAL_DISCOUNT * 100); // 10
 
-const PRICING_PLANS: PricingPlan[] = [
-  {
-    id: "free",
-    name: "Gratis prøve",
-    price: 0,
-    currency: "kr",
-    period: "alltid",
-    description: "For å teste plattformen",
-    features: [
-      "5 innlegg (kun tekst)",
-      "Alle plattformer",
-      "Grunnleggende dashboard",
-      "Ingen AI-bilder",
-      "Ingen stemmetrening",
-    ],
-    cta: "Start gratis",
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    price: 199,
-    currency: "kr",
-    period: "mnd",
-    description: "For profesjonelle innholdskapere",
-    badge: "ANBEFALT",
-    badgeColor: "bg-blue-500",
-    features: [
-      "100 innlegg per måned",
-      "AI-genererte bilder inkludert",
-      "Stemmetrening (din stil)",
-      "Trend og Inspirasjon",
-      "Innholdskalender",
-      "Gjenbruk-maskin",
-      "AI Coach & analyse",
-      "Prioritert support",
-    ],
-    cta: "Start Pro nå",
-    highlighted: true,
-  },
-  {
-    id: "business",
-    name: "Business",
-    price: 499,
-    currency: "kr",
-    period: "mnd",
-    description: "For bedrifter og agenturer",
-    features: [
-      "500 innlegg per måned",
-      "Ubegrenset AI-bilder",
-      "Avansert stemmetrening",
-      "Multi-bruker tilgang",
-      "Team collaboration",
-      "Innholdskalender (avansert)",
-      "Automatisering og scheduling",
-      "API tilgang",
-      "Dedikert support",
-      "Månedlige rapporter",
-    ],
-    cta: "Start Business nå",
-  },
-  {
-    id: "enterprise",
-    name: "Enterprise",
-    price: 0,
-    currency: "kr",
-    period: "custom",
-    description: "For store organisasjoner",
-    features: [
-      "Ubegrenset innlegg",
-      "Ubegrenset AI-bilder",
-      "Fullstendig tilpasning",
-      "Dedikert account manager",
-      "Custom integrasjoner",
-      "White-label løsning",
-      "SLA garantier",
-      "Prioritert support 24/7",
-      "Årlig strategi-sesjon",
-    ],
-    cta: "Kontakt oss",
-  },
-];
+// The third tier is shown as "Premium" but keyed ENTERPRISE in the backend.
+const backendTier = (key: string) => (key === "PREMIUM" ? "ENTERPRISE" : key);
 
 export function Pricing() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
+  const [billing, setBilling] = useState<Billing>("monthly");
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [showVippsPayment, setShowVippsPayment] = useState(false);
   const [isLoading] = useState(false);
@@ -115,33 +27,24 @@ export function Pricing() {
     { enabled: !!user }
   );
 
-  const handleSelectPlan = (planId: string) => {
-    if (!user && planId !== "free") {
+  const handleSelectPlan = (planKey: string) => {
+    if (planKey === "FREE") {
+      setLocation(user ? "/dashboard" : "/");
+      return;
+    }
+    if (!user) {
       setLocation("/");
       return;
     }
-
-    if (planId === "free") {
-      // Free plan - no payment needed
-      setLocation("/dashboard");
-      return;
-    }
-
-    if (planId === "enterprise") {
-      // Enterprise - contact form
-      setLocation("/contact");
-      return;
-    }
-
-    setSelectedPlan(planId);
+    setSelectedPlan(planKey);
     setShowVippsPayment(true);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50/80 via-background to-background dark:from-slate-950/50">
-      <main className="container py-12 md:py-20 max-w-7xl">
+      <main className="container py-12 md:py-20 max-w-6xl">
         {/* Header */}
-        <div className="text-center mb-16 page-enter">
+        <div className="text-center mb-10 page-enter">
           <div className="inline-flex items-center gap-2 mb-4 px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800">
             <Sparkles className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
@@ -149,38 +52,56 @@ export function Pricing() {
             </span>
           </div>
 
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
-            Velg din plan
-          </h1>
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">Velg din plan</h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Alle planer inkluderer 14 dagers gratis prøveperiode. Ingen kredittkort påkrevd.
+            Start gratis – ingen kredittkort. Oppgrader når du er klar.
           </p>
         </div>
 
+        {/* Billing toggle */}
+        <div className="flex items-center justify-center gap-3 mb-12">
+          <button
+            onClick={() => setBilling("monthly")}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+              billing === "monthly" ? "bg-primary text-white shadow" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Månedlig
+          </button>
+          <button
+            onClick={() => setBilling("yearly")}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition inline-flex items-center gap-2 ${
+              billing === "yearly" ? "bg-primary text-white shadow" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Årlig
+            <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">
+              Spar {SAVE_PCT}%
+            </span>
+          </button>
+        </div>
+
         {/* Pricing Cards */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-          {PRICING_PLANS.map((plan) => {
-            const isCurrentPlan = currentSubscription?.tier === plan.id;
+        <div className="grid md:grid-cols-3 gap-6 mb-16 max-w-5xl mx-auto">
+          {PLANS.map((plan) => {
+            const isCurrentPlan = currentSubscription?.tier === backendTier(plan.key);
+            const isYearly = billing === "yearly" && plan.monthlyNOK > 0;
+            const priceShown = isYearly ? yearlyPerMonthNOK(plan.monthlyNOK) : plan.monthlyNOK;
 
             return (
               <Card
-                key={plan.id}
+                key={plan.key}
                 className={`relative transition-all duration-300 hover:shadow-lg ${
-                  plan.highlighted
-                    ? "lg:scale-105 border-2 border-blue-500 shadow-xl"
-                    : "hover:shadow-md"
+                  plan.highlighted ? "md:scale-105 border-2 border-blue-500 shadow-xl" : "hover:shadow-md"
                 } ${isCurrentPlan ? "ring-2 ring-green-500" : ""}`}
               >
-                {plan.badge && (
+                {plan.highlighted && (
                   <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                    <span
-                      className={`${plan.badgeColor || "bg-purple-500"} text-white text-xs font-bold px-3 py-1 rounded-full`}
-                    >
-                      {plan.badge}
+                    <span className="bg-blue-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                      ANBEFALT
                     </span>
                   </div>
                 )}
-
                 {isCurrentPlan && (
                   <div className="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-medium">
                     Din plan
@@ -189,23 +110,22 @@ export function Pricing() {
 
                 <CardHeader className={plan.highlighted ? "pt-8" : ""}>
                   <CardTitle className="text-2xl">{plan.name}</CardTitle>
-                  <CardDescription>{plan.description}</CardDescription>
+                  <CardDescription>{plan.tagline}</CardDescription>
 
                   <div className="mt-6 mb-4">
-                    {plan.price === 0 && plan.period === "custom" ? (
-                      <div className="text-3xl font-bold">Custom</div>
-                    ) : (
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-4xl font-bold">{plan.price}</span>
-                        <span className="text-muted-foreground">{plan.currency}</span>
-                        {plan.period !== "alltid" && (
-                          <span className="text-muted-foreground">/{plan.period}</span>
-                        )}
-                      </div>
-                    )}
-                    {plan.period !== "custom" && plan.price > 0 && (
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-4xl font-bold">{priceShown}</span>
+                      <span className="text-muted-foreground">kr</span>
+                      {plan.monthlyNOK > 0 && <span className="text-muted-foreground">/mnd</span>}
+                    </div>
+                    {isYearly && (
                       <p className="text-sm text-muted-foreground mt-2">
-                        = {(plan.price / 30).toFixed(2)} kr/dag
+                        {yearlyNOK(plan.monthlyNOK)} kr faktureres årlig
+                      </p>
+                    )}
+                    {!isYearly && plan.monthlyNOK > 0 && (
+                      <p className="text-sm text-muted-foreground mt-2">
+                        = {(plan.monthlyNOK / 30).toFixed(2)} kr/dag
                       </p>
                     )}
                   </div>
@@ -213,7 +133,7 @@ export function Pricing() {
 
                 <CardContent className="space-y-6">
                   <Button
-                    onClick={() => handleSelectPlan(plan.id)}
+                    onClick={() => handleSelectPlan(plan.key)}
                     disabled={isCurrentPlan || isLoading}
                     className={`w-full h-11 font-semibold ${
                       plan.highlighted
@@ -226,10 +146,8 @@ export function Pricing() {
                       "Din plan"
                     ) : (
                       <>
-                        {plan.cta}
-                        {plan.id !== "enterprise" && plan.id !== "free" && (
-                          <Smartphone className="ml-2 h-4 w-4" />
-                        )}
+                        {plan.key === "FREE" ? "Start gratis" : `Velg ${plan.name}`}
+                        {plan.key !== "FREE" && <Smartphone className="ml-2 h-4 w-4" />}
                       </>
                     )}
                   </Button>
@@ -253,20 +171,25 @@ export function Pricing() {
           <h2 className="text-2xl font-bold mb-8">Sammenlign planer</h2>
 
           <div className="space-y-4">
+            <div className="grid grid-cols-4 gap-4 pb-3 border-b font-semibold text-sm text-muted-foreground">
+              <div>Funksjon</div>
+              <div className="text-center">Gratis</div>
+              <div className="text-center text-blue-600">Pro</div>
+              <div className="text-center">Premium</div>
+            </div>
             {[
-              { feature: "Innlegg per måned", free: "5", pro: "100", business: "500", enterprise: "∞" },
-              { feature: "AI-genererte bilder", free: "Nei", pro: "Ja", business: "Ubegrenset", enterprise: "Ubegrenset" },
-              { feature: "Stemmetrening", free: "Nei", pro: "Ja", business: "Avansert", enterprise: "Fullstendig" },
-              { feature: "Team collaboration", free: "Nei", pro: "Nei", business: "Ja", enterprise: "Ja" },
-              { feature: "API tilgang", free: "Nei", pro: "Nei", business: "Ja", enterprise: "Ja" },
-              { feature: "Dedikert support", free: "Nei", pro: "Prioritert", business: "Dedikert", enterprise: "24/7" },
+              { feature: "Innlegg per måned", free: "2", pro: "15", premium: "30" },
+              { feature: "AI-genererte bilder", free: "Nei", pro: "Ja", premium: "Ja" },
+              { feature: "Stemmetrening", free: "Nei", pro: "Ja", premium: "Avansert" },
+              { feature: "Innholdskalender", free: "Nei", pro: "Ja", premium: "Ja" },
+              { feature: "Multi-bruker / team", free: "Nei", pro: "Nei", premium: "Ja" },
+              { feature: "Support", free: "Grunnleggende", pro: "Prioritert", premium: "Dedikert" },
             ].map((row, idx) => (
-              <div key={idx} className="grid grid-cols-5 gap-4 py-3 border-b last:border-b-0">
-                <div className="font-medium col-span-1">{row.feature}</div>
+              <div key={idx} className="grid grid-cols-4 gap-4 py-3 border-b last:border-b-0">
+                <div className="font-medium">{row.feature}</div>
                 <div className="text-center text-sm">{row.free}</div>
                 <div className="text-center text-sm text-blue-600 font-medium">{row.pro}</div>
-                <div className="text-center text-sm">{row.business}</div>
-                <div className="text-center text-sm">{row.enterprise}</div>
+                <div className="text-center text-sm">{row.premium}</div>
               </div>
             ))}
           </div>
@@ -283,16 +206,16 @@ export function Pricing() {
                 a: "Ja, du kan oppgradere eller nedgradere planen din når som helst. Endringer trer i kraft på neste faktureringsdato.",
               },
               {
-                q: "Hva skjer etter prøveperioden?",
-                a: "Du vil motta en påminnelse før prøveperioden utløper. Hvis du ikke avbryter, vil du bli belastet for den valgte planen.",
+                q: "Hvor mange innlegg får jeg?",
+                a: "Gratis gir 2 innlegg per måned, Pro gir 15 og Premium gir 30 – med AI-bilder inkludert fra Pro og oppover.",
               },
               {
                 q: "Tilbyr dere refusjon?",
                 a: "Ja, vi tilbyr 30 dagers pengene-tilbake-garanti hvis du ikke er fornøyd.",
               },
               {
-                q: "Hva om jeg trenger årlig betaling?",
-                a: "Kontakt oss for årlige rabatter. Vi tilbyr normalt 20% rabatt for årlige abonnement.",
+                q: `Er det rabatt på årlig betaling?`,
+                a: `Ja. Velger du årlig betaling sparer du ${SAVE_PCT}% sammenlignet med å betale måned for måned.`,
               },
             ].map((item, idx) => (
               <div key={idx}>
@@ -309,12 +232,13 @@ export function Pricing() {
 
       {/* Vipps Payment Modal */}
       {showVippsPayment && selectedPlan && (() => {
-        const plan = PRICING_PLANS.find((p) => p.id === selectedPlan);
+        const plan = PLANS.find((p) => p.key === selectedPlan);
         if (!plan) return null;
+        const amountNOK = billing === "yearly" ? yearlyNOK(plan.monthlyNOK) : plan.monthlyNOK;
         return (
           <VippsPaymentDialog
-            amount={plan.price * 100}
-            description={`${plan.name}-abonnement`}
+            amount={amountNOK * 100}
+            description={`${plan.name}-abonnement (${billing === "yearly" ? "årlig" : "månedlig"})`}
             onClose={() => {
               setShowVippsPayment(false);
               setSelectedPlan(null);

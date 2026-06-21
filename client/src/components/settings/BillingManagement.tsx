@@ -44,7 +44,7 @@ export default function BillingManagement() {
       period: "per måned",
       description: "For profesjonelle innholdsskapere",
       features: [
-        "100 innlegg per måned",
+        "15 innlegg per måned",
         "Alle plattformer",
         "AI Content Coach",
         "Ubegrensede lagrede eksempler",

@@ -1,6 +1,7 @@
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { getLoginUrl } from "@/const";
 import { Link } from "wouter";
 import { 
@@ -31,6 +32,8 @@ import {
 } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import HeroDemo from "@/components/HeroDemo";
+import { AuroraLayer } from "@/components/ui/aurora-background";
+import PricingPlans from "@/components/PricingPlans";
 import HowItWorksDemo from "@/components/HowItWorksDemo";
 import FeaturesDemo from "@/components/FeaturesDemo";
 import PricingDemo from "@/components/PricingDemo";
@@ -265,12 +268,8 @@ export default function Home() {
 
       {/* Hero Section */}
       <section className="pt-16 pb-20 md:pt-24 md:pb-28 relative overflow-hidden">
-        {/* Background */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-primary/5 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl"></div>
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-400/3 rounded-full blur-3xl"></div>
-        </div>
+        {/* Aurora background (Aceternity) */}
+        <AuroraLayer />
 
         <div className="container mx-auto px-4 relative z-10">
           <div className="text-center max-w-4xl mx-auto">
@@ -363,6 +362,25 @@ export default function Home() {
               </div>
               <div className="text-sm text-gray-500 font-medium">4.9/5 vurdering</div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Trusted-by logo strip — replace placeholder wordmarks with real customer logos */}
+      <section className="py-12 bg-white">
+        <div className="container mx-auto px-4">
+          <p className="text-center text-sm font-medium text-gray-400 uppercase tracking-wider mb-8">
+            Brukt av markedsteam i hele Norden
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-6 md:gap-x-16">
+            {["Nordisk Media", "VekstByrå", "StartupLab", "Helse Norge", "Handel AS", "Fjord Digital"].map((name) => (
+              <span
+                key={name}
+                className="font-display text-lg md:text-xl font-bold text-gray-300 transition-colors duration-300 hover:text-gray-500"
+              >
+                {name}
+              </span>
+            ))}
           </div>
         </div>
       </section>
@@ -545,73 +563,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-8">
-            {/* Free Trial */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-8 hover:shadow-lg transition-all duration-300">
-              <h3 className="text-2xl font-bold mb-2 text-gray-900">Gratis prøve</h3>
-              <div className="text-5xl font-bold mb-1 text-gray-900">0 kr</div>
-              <p className="text-sm text-gray-500 mb-6">For å teste plattformen</p>
-              <ul className="space-y-3 mb-8">
-                {[
-                  { text: "5 innlegg (kun tekst)", included: true },
-                  { text: "Alle plattformer", included: true },
-                  { text: "Grunnleggende dashboard", included: true },
-                  { text: "Ingen AI-bilder", included: false },
-                  { text: "Ingen stemmetrening", included: false }
-                ].map((item, i) => (
-                  <li key={i} className={`flex items-center gap-3 ${!item.included ? 'text-gray-400' : ''}`}>
-                    {item.included ? (
-                      <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
-                    ) : (
-                      <span className="h-5 w-5 flex-shrink-0 text-center text-gray-300">—</span>
-                    )}
-                    <span className="text-sm">{item.text}</span>
-                  </li>
-                ))}
-              </ul>
-              <Button variant="outline" size="lg" className="w-full rounded-xl" asChild>
-                <a href={getLoginUrl()}>Start gratis</a>
-              </Button>
-            </div>
-
-            {/* Pro Plan */}
-            <div className="bg-white rounded-2xl border-2 border-primary relative overflow-hidden p-8 shadow-xl shadow-primary/10 hover:shadow-2xl hover:shadow-primary/15 transition-all duration-300">
-              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary to-purple-600"></div>
-              <div className="absolute top-4 right-4">
-                <span className="bg-gradient-to-r from-primary to-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">
-                  ANBEFALT
-                </span>
-              </div>
-              <h3 className="text-2xl font-bold mb-2 text-gray-900">Pro</h3>
-              <div className="text-5xl font-bold mb-1 text-gray-900">
-                199 kr
-                <span className="text-lg font-normal text-gray-500"> / mnd</span>
-              </div>
-              <p className="text-sm text-gray-500 mb-6">= bare 6,60 kr/dag ☕</p>
-              <ul className="space-y-3 mb-8">
-                {[
-                  { text: "100 innlegg per måned", bold: true },
-                  { text: "AI-genererte bilder inkludert", bold: true },
-                  { text: "Stemmetrening (din stil)", bold: false },
-                  { text: "Trend og Inspirasjon", bold: false },
-                  { text: "Innholdskalender", bold: false },
-                  { text: "Gjenbruk-maskin", bold: false },
-                  { text: "AI Coach & analyse", bold: false },
-                  { text: "Prioritert support", bold: false }
-                ].map((item, i) => (
-                  <li key={i} className="flex items-center gap-3">
-                    <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
-                    <span className={`text-sm ${item.bold ? 'font-semibold' : ''}`}>{item.text}</span>
-                  </li>
-                ))}
-              </ul>
-              <Button size="lg" className="w-full bg-gradient-to-r from-primary to-purple-600 hover:opacity-90 rounded-xl shadow-md" asChild>
-                <a href={getLoginUrl()}>
-                  Start Pro nå <ArrowRight className="ml-2 h-4 w-4" />
-                </a>
-              </Button>
-            </div>
-          </div>
+          <PricingPlans />
 
           {/* Guarantee */}
           <div className="mt-12 text-center">
@@ -623,6 +575,55 @@ export default function Home() {
 
           {/* Time Savings Calculator */}
           <PricingDemo />
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section id="faq" className="py-20 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Ofte stilte spørsmål</h2>
+            <p className="text-lg text-gray-500">Alt du lurer på før du kommer i gang.</p>
+          </div>
+          <div className="max-w-3xl mx-auto">
+            <Accordion type="single" collapsible className="w-full">
+              {[
+                {
+                  q: "Hva koster Nexify?",
+                  a: "Du starter gratis med 5 innlegg – ingen kredittkort. Vil du ha mer, gir Pro-abonnementet ubegrenset generering, AI-bilder og planlegging til en fast månedspris.",
+                },
+                {
+                  q: "Trenger jeg kredittkort for å prøve?",
+                  a: "Nei. Den gratis prøveperioden krever ingen betalingsinformasjon – du kan teste alt og avbryte når som helst.",
+                },
+                {
+                  q: "Hvilke plattformer støttes?",
+                  a: "Nexify lager innhold tilpasset LinkedIn, X (Twitter), Instagram og Facebook – med riktig tone og format for hver plattform.",
+                },
+                {
+                  q: "Er innholdet på norsk?",
+                  a: "Ja. Nexify er bygget spesielt for norsk språk og tone, så innleggene høres naturlige ut – ikke maskinoversatt.",
+                },
+                {
+                  q: "Hvordan håndteres dataene mine?",
+                  a: "Tekstforespørslene sendes til OpenAI for AI-behandling og lagres ikke permanent. Du eier 100 % av innholdet som genereres.",
+                },
+                {
+                  q: "Kan jeg si opp når som helst?",
+                  a: "Ja. Du kan oppgradere, nedgradere eller avslutte abonnementet når du vil – uten bindingstid.",
+                },
+              ].map((faq, i) => (
+                <AccordionItem key={i} value={`faq-${i}`} className="border-b border-gray-200">
+                  <AccordionTrigger className="text-left text-base md:text-lg font-semibold hover:no-underline py-5">
+                    {faq.q}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-gray-600 leading-relaxed pb-5">
+                    {faq.a}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
         </div>
       </section>
 
