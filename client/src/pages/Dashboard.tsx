@@ -721,8 +721,8 @@ export default function Dashboard() {
                 </h3>
                 <p className="text-white/80 text-sm">
                   {language === "no" 
-                    ? "Oppgrader til Pro for 100 innlegg/mnd, AI-bilder, stemmetrening og mye mer."
-                    : "Upgrade to Pro for 100 posts/month, AI images, voice training and much more."}
+                    ? "Oppgrader til Pro for 15 innlegg/mnd, AI-bilder, stemmetrening og mye mer."
+                    : "Upgrade to Pro for 15 posts/month, AI images, voice training and much more."}
                 </p>
               </div>
               <Button 

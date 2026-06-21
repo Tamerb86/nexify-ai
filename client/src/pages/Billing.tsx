@@ -82,7 +82,7 @@ export function BillingPage() {
       case "PRO":
         return "Pro";
       case "ENTERPRISE":
-        return "Enterprise";
+        return "Premium";
       default:
         return tier;
     }

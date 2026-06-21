@@ -1,99 +1,104 @@
 /**
  * Stripe Products and Prices Configuration
- * 
- * This file defines all subscription plans for Innlegg/Nexify AI
+ *
+ * Numbers are derived from the single pricing source of truth (@shared/pricing) so
+ * the backend can never drift from the landing page / pricing page. The internal
+ * product KEYS (FREE/PRO/ENTERPRISE) are kept stable for the payment + webhook
+ * plumbing; the third tier is presented to users as "Premium".
  */
 
+import { getPlan, yearlyNOK, FREE_POSTS, ANNUAL_DISCOUNT } from "@shared/pricing";
+
+const FREE = getPlan("FREE");
+const PRO = getPlan("PRO");
+const PREMIUM = getPlan("PREMIUM");
+const SAVE_PCT = Math.round(ANNUAL_DISCOUNT * 100); // 10
+
 export const STRIPE_PRODUCTS = {
-  // Free tier - no payment required, managed through trial system
+  // Free tier - no payment required, managed through the trial system
   FREE: {
-    name: "Gratis",
-    description: "5 AI-genererte innlegg per måned",
-    priceNOK: 0,
+    name: FREE.name,
+    description: `${FREE.postsPerMonth} AI-genererte innlegg per måned`,
+    priceNOK: FREE.monthlyNOK,
     interval: "month" as const,
     features: [
-      "5 AI-genererte innlegg per måned",
-      "En plattform",
+      `${FREE.postsPerMonth} AI-genererte innlegg per måned`,
+      "Alle plattformer",
       "Grunnleggende support",
     ],
   },
-  
+
   // Pro tier - main revenue driver
   PRO_MONTHLY: {
-    name: "Pro Månedlig",
-    description: "100 AI-genererte innlegg per måned + alle miksaturer",
-    priceNOK: 299,
+    name: PRO.name,
+    description: `${PRO.postsPerMonth} AI-genererte innlegg per måned + alle funksjoner`,
+    priceNOK: PRO.monthlyNOK,
     interval: "month" as const,
     features: [
-      "100 AI-genererte innlegg per måned",
+      `${PRO.postsPerMonth} AI-genererte innlegg per måned`,
       "AI-bildegenerering",
-      "Alle plattformer (LinkedIn, Instagram, Facebook, Twitter, TikTok)",
+      "Alle plattformer (LinkedIn, Instagram, Facebook, Twitter)",
       "Innholdskalender med smart planlegging",
-      "Gjenbruk av innlegg - en til fem",
+      "Gjenbruk av innlegg",
       "Stemmetrening - AI lærer din skrivestil",
-      "Trend og Inspirasjon - Kuraterte emner",
+      "Trend og Inspirasjon",
       "AI Content Coach",
-      "Norsk innholdskalender",
       "Prioritert support",
     ],
   },
-  
+
   PRO_YEARLY: {
-    name: "Pro Årlig",
-    description: "100 innlegg/måned + alle miksaturer (spar 17%)",
-    priceNOK: 2990, // 299 * 12 * 0.833 = 2989.56 rounded
+    name: `${PRO.name} Årlig`,
+    description: `${PRO.postsPerMonth} innlegg/måned (spar ${SAVE_PCT}%)`,
+    priceNOK: yearlyNOK(PRO.monthlyNOK), // 2149
     interval: "year" as const,
     features: [
       "Alt i Pro Månedlig",
-      "Spar 17% sammenlignet med månedlig",
-      "1200 innlegg totalt per år",
+      `Spar ${SAVE_PCT}% sammenlignet med månedlig`,
       "Prioritet i ny funksjonalitet",
     ],
   },
-  
-  // Enterprise tier - for agencies and large companies
+
+  // Third tier - presented as "Premium" (internal key kept as ENTERPRISE)
   ENTERPRISE_MONTHLY: {
-    name: "Enterprise Månedlig",
-    description: "Ubegrenset innlegg + API + dedikert support",
-    priceNOK: 1499,
+    name: PREMIUM.name,
+    description: `${PREMIUM.postsPerMonth} AI-genererte innlegg per måned for byråer og team`,
+    priceNOK: PREMIUM.monthlyNOK,
     interval: "month" as const,
     features: [
-      "Ubegrenset AI-genererte innlegg",
-      "Alle miksaturer i Pro +",
-      "API-tilgang for integrasjoner",
-      "Avansert analyse og rapportering",
-      "Dedikert account manager",
-      "24/7 prioritert support",
-      "Tilpasset opplæring og onboarding",
-      "Prioritet i ny funksjonalitet",
-      "Mulighet for hvit merking (White Label)",
+      `${PREMIUM.postsPerMonth} AI-genererte innlegg per måned`,
+      "Alt i Pro inkludert",
+      "Multi-bruker tilgang",
+      "Avansert stemmetrening",
+      "Automatisering og planlegging",
+      "Månedlige rapporter",
+      "Dedikert support",
     ],
   },
-  
+
   ENTERPRISE_YEARLY: {
-    name: "Enterprise Årlig",
-    description: "Ubegrenset innlegg + API + dedikert support (spar 17%)",
-    priceNOK: 14990, // 1499 * 12 * 0.833 = 14989.56 rounded
+    name: `${PREMIUM.name} Årlig`,
+    description: `${PREMIUM.postsPerMonth} innlegg/måned (spar ${SAVE_PCT}%)`,
+    priceNOK: yearlyNOK(PREMIUM.monthlyNOK), // 4309
     interval: "year" as const,
     features: [
-      "Alt i Enterprise Månedlig",
-      "Spar 17% sammenlignet med månedlig",
-      "Dedikert Slack-kanal",
+      "Alt i Premium Månedlig",
+      `Spar ${SAVE_PCT}% sammenlignet med månedlig`,
       "Kvartalsvis strategisk gjennomgang",
     ],
   },
 };
 
 export const TRIAL_LIMITS = {
-  posts: 5,
+  posts: FREE_POSTS,
   durationDays: 14,
 };
 
-// Subscription limits by tier
+// Subscription limits by tier (monthlyPosts mirrors @shared/pricing)
 export const SUBSCRIPTION_LIMITS = {
   FREE: {
-    monthlyPosts: 5,
-    platforms: 1,
+    monthlyPosts: FREE.postsPerMonth,
+    platforms: 4,
     aiImages: false,
     contentCalendar: false,
     repurpose: false,
@@ -101,8 +106,8 @@ export const SUBSCRIPTION_LIMITS = {
     apiAccess: false,
   },
   PRO: {
-    monthlyPosts: 100,
-    platforms: 5,
+    monthlyPosts: PRO.postsPerMonth,
+    platforms: 4,
     aiImages: true,
     contentCalendar: true,
     repurpose: true,
@@ -110,8 +115,8 @@ export const SUBSCRIPTION_LIMITS = {
     apiAccess: false,
   },
   ENTERPRISE: {
-    monthlyPosts: -1, // unlimited
-    platforms: 5,
+    monthlyPosts: PREMIUM.postsPerMonth,
+    platforms: 4,
     aiImages: true,
     contentCalendar: true,
     repurpose: true,

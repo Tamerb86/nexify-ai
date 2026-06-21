@@ -151,7 +151,7 @@ function SubscriptionCard({ language }: { language: "no" | "en" }) {
                 </h4>
                 <p className="text-2xl font-bold text-primary">199 kr<span className="text-sm font-normal text-muted-foreground">/mnd</span></p>
                 <ul className="text-sm text-muted-foreground mt-2 space-y-1">
-                  <li>• 100 innlegg/måned</li>
+                  <li>• 15 innlegg/måned</li>
                   <li>• AI-bilder inkludert</li>
                   <li>• Stemmetrening</li>
                 </ul>
