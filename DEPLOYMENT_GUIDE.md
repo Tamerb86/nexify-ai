@@ -27,11 +27,13 @@ Before deploying to production, ensure all items are complete:
 # Database
 DATABASE_URL=mysql://user:password@host/database
 
-# OAuth
-VITE_APP_ID=your_app_id
-OAUTH_SERVER_URL=https://api.manus.im
-VITE_OAUTH_PORTAL_URL=https://portal.manus.im
-JWT_SECRET=your_jwt_secret
+# Auth & security
+JWT_SECRET=your_jwt_secret_at_least_32_chars
+TOKEN_ENCRYPTION_KEY=your_random_secret
+PUBLIC_SITE_URL=https://your-domain.com
+# Google OAuth (optional)
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
 
 # Stripe
 STRIPE_SECRET_KEY=sk_test_...
@@ -49,8 +51,9 @@ VITE_ANALYTICS_ENDPOINT=https://analytics.example.com
 # LLM & APIs
 OPENAI_API_KEY=sk-...
 HUGGINGFACE_API_KEY=hf_...
-BUILT_IN_FORGE_API_KEY=your_key
-BUILT_IN_FORGE_API_URL=https://api.manus.im
+# Optional OpenAI-compatible proxy (defaults to https://api.openai.com)
+# BUILT_IN_FORGE_API_URL=https://api.openai.com
+# BUILT_IN_FORGE_API_KEY=
 
 # Owner Info
 OWNER_NAME=Your Name
@@ -211,7 +214,7 @@ If deployment fails:
 **Solution:**
 1. Check production domain in Vercel
 2. Update OAuth redirect URI to: `https://your-domain.com/api/oauth/callback`
-3. Verify in Manus OAuth settings
+3. Verify the redirect URI in your Google OAuth client settings
 
 ### Database Connection Issues
 
@@ -302,5 +305,4 @@ For deployment issues:
 
 3. **Get Help**
    - Contact Vercel support
-   - Check Manus documentation
    - Review application README

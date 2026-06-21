@@ -62,7 +62,7 @@ Innlegg is an AI-powered content generation platform designed specifically for N
 - **Payment Processing** - Secure Stripe integration
 
 ### Security Features
-- **OAuth 2.0 Authentication** - Secure user authentication via Manus
+- **OAuth 2.0 Authentication** - Secure user authentication (Google OAuth + JWT session cookies)
 - **Rate Limiting** - Protect against abuse
 - **CORS Protection** - Cross-origin request security
 - **SQL Injection Prevention** - Parameterized queries via Drizzle ORM
@@ -191,48 +191,48 @@ The application will be available at `http://localhost:3000`.
 Create a `.env.local` file in the project root with the following variables:
 
 ```bash
-# Database Configuration
+# Core (required — server refuses to boot without these)
+NODE_ENV=development
+JWT_SECRET=your_jwt_secret_at_least_32_chars   # >=32 random chars — signs session cookies
 DATABASE_URL=mysql://user:password@localhost:3306/innlegg
+PUBLIC_SITE_URL=http://localhost:5000
 
-# Authentication
-VITE_APP_ID=your_manus_app_id
-OAUTH_SERVER_URL=https://api.manus.im
-VITE_OAUTH_PORTAL_URL=https://auth.manus.im
-JWT_SECRET=your_jwt_secret_key
-
-# Owner Information
-OWNER_OPEN_ID=your_owner_open_id
-OWNER_NAME=Your Name
-
-# AI/LLM Configuration
+# AI / LLM
 OPENAI_API_KEY=sk-your-openai-api-key
-HUGGINGFACE_API_KEY=hf_your_huggingface_token
+# BUILT_IN_FORGE_API_URL=https://api.openai.com  # optional OpenAI-compatible proxy base
+# BUILT_IN_FORGE_API_KEY=                         # optional — falls back to OPENAI_API_KEY
+# HUGGINGFACE_API_KEY=hf_your_huggingface_token   # optional
 
-# Manus Built-in APIs
-BUILT_IN_FORGE_API_URL=https://api.manus.im/forge
-BUILT_IN_FORGE_API_KEY=your_forge_api_key
-VITE_FRONTEND_FORGE_API_KEY=your_frontend_forge_key
-VITE_FRONTEND_FORGE_API_URL=https://api.manus.im/forge
+# Security
+TOKEN_ENCRYPTION_KEY=your_random_secret          # AES-256-GCM encryption of stored OAuth tokens
+
+# Auth: Google OAuth (optional)
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
 
 # Payment Processing (Stripe)
 STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
 VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
 STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
 
-# Analytics
-VITE_ANALYTICS_WEBSITE_ID=your_analytics_id
-VITE_ANALYTICS_ENDPOINT=https://analytics.manus.im
+# Rate limiting (recommended for production)
+REDIS_URL=
 
-# Application Settings
-NODE_ENV=development
-VITE_APP_TITLE=Innlegg
-VITE_APP_LOGO=https://your-domain.com/logo.png
+# Analytics (optional)
+VITE_GA4_ID=
+VITE_ANALYTICS_WEBSITE_ID=
+VITE_ANALYTICS_ENDPOINT=
+
+# Client (build-time)
+VITE_SITE_URL=http://localhost:5000
 
 # Optional: Error Tracking
 SENTRY_DSN=https://your-sentry-dsn@sentry.io/project-id
 
 # Optional: Telegram Bot (if using Telegram integration)
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+
+# The full, authoritative list lives in .env.example
 ```
 
 ### Environment Variable Descriptions
@@ -240,19 +240,21 @@ TELEGRAM_BOT_TOKEN=your_telegram_bot_token
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `DATABASE_URL` | ✅ | MySQL/TiDB connection string |
-| `VITE_APP_ID` | ✅ | Manus OAuth application ID |
-| `JWT_SECRET` | ✅ | Secret key for session cookies |
+| `JWT_SECRET` | ✅ | Secret key (≥32 chars) for session cookies |
+| `PUBLIC_SITE_URL` | ✅ | Canonical site URL (OAuth/redirects/sitemap) |
 | `OPENAI_API_KEY` | ✅ | OpenAI API key for content generation |
+| `TOKEN_ENCRYPTION_KEY` | ✅ | Encrypts stored OAuth tokens at rest |
 | `STRIPE_SECRET_KEY` | ✅ | Stripe secret key for payments |
+| `GOOGLE_CLIENT_ID` | ❌ | Google OAuth client ID (optional) |
 | `SENTRY_DSN` | ⚠️ | Sentry DSN for error tracking (recommended) |
 | `TELEGRAM_BOT_TOKEN` | ❌ | Telegram bot token (optional) |
 
 ### Getting API Keys
 
-**Manus OAuth**:
-1. Visit https://manus.im/dashboard
-2. Create a new application
-3. Copy the App ID and OAuth Server URL
+**Google OAuth** (optional):
+1. Visit https://console.cloud.google.com/apis/credentials
+2. Create an OAuth 2.0 Client ID
+3. Copy the Client ID and Client Secret to `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`
 
 **OpenAI**:
 1. Visit https://platform.openai.com/api-keys
@@ -532,16 +534,13 @@ After optimization:
 
 ### Deployment Options
 
-#### Option 1: Manus Platform (Recommended)
+#### Option 1: Docker Compose (Recommended)
 
-1. Create checkpoint:
-   ```bash
-   pnpm build
-   ```
-
-2. Click "Publish" in Manus Dashboard
-
-3. Configure custom domain (optional)
+Brings up the app + MySQL with a single command:
+```bash
+docker compose up --build
+```
+Then open http://localhost:5000. See `docker-compose.yml` for the local environment defaults.
 
 #### Option 2: Docker
 
@@ -903,7 +902,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Contact
 
-**Project Lead**: Manus AI Team  
+**Project Lead**: Nexify AI  
 **Email**: team@innlegg.no  
 **Website**: https://innlegg.no  
 **Twitter**: [@innlegg_no](https://twitter.com/innlegg_no)
