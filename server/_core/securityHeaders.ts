@@ -101,7 +101,8 @@ export function preventParameterPollution(req: Request, res: Response, next: Nex
  * Enforce HTTPS in production
  */
 export function enforceHttps(req: Request, res: Response, next: NextFunction) {
-  if (process.env.NODE_ENV === "production") {
+  // Escape hatch for local/Docker runs without a TLS proxy (set DISABLE_HTTPS_REDIRECT=true).
+  if (process.env.NODE_ENV === "production" && process.env.DISABLE_HTTPS_REDIRECT !== "true") {
     if (req.header("x-forwarded-proto") !== "https") {
       // Redirect to a trusted canonical host, never the attacker-controlled Host header.
       let host = req.header("host") || "";

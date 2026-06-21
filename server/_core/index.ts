@@ -336,9 +336,14 @@ async function startServer() {
     })
   );
 
-  // Static file serving and Vite setup
-  await setupVite(app, server);
-  serveStatic(app);
+  // Client serving: Vite dev middleware (HMR) in development; the pre-built
+  // static client (dist/public) in production. Running setupVite in production
+  // makes "/" 500 (it looks for client/index.html which isn't shipped).
+  if (process.env.NODE_ENV === "development") {
+    await setupVite(app, server);
+  } else {
+    serveStatic(app);
+  }
 
   // Error-handling middleware — MUST be registered last so it actually catches
   // errors from the routes/tRPC/webhooks above. Fails closed and never leaks
