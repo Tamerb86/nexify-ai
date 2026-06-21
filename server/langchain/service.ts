@@ -4,6 +4,53 @@ import { StringOutputParser } from "@langchain/core/output_parsers";
 import { RunnableSequence } from "@langchain/core/runnables";
 
 /**
+ * Extract the FIRST balanced JSON value (array `[]` or object `{}`) from an LLM
+ * response. LLMs routinely wrap output in ```json fences and/or append prose, so a
+ * greedy /\[[\s\S]*\]/ spans to the last bracket and JSON.parse throws
+ * "Unexpected non-whitespace character after JSON". This scans bracket depth while
+ * respecting string literals/escapes, parses only that slice, and degrades to a
+ * fallback (never throws) if nothing valid is found.
+ */
+function extractFirstJson<T>(text: string, open: "[" | "{", fallback: T): T {
+  if (!text) return fallback;
+  const close = open === "[" ? "]" : "}";
+  const start = text.indexOf(open);
+  if (start === -1) return fallback;
+
+  let depth = 0;
+  let inStr = false;
+  let esc = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (inStr) {
+      if (esc) esc = false;
+      else if (ch === "\\") esc = true;
+      else if (ch === '"') inStr = false;
+      continue;
+    }
+    if (ch === '"') inStr = true;
+    else if (ch === open) depth++;
+    else if (ch === close) {
+      depth--;
+      if (depth === 0) {
+        try {
+          return JSON.parse(text.slice(start, i + 1)) as T;
+        } catch {
+          return fallback;
+        }
+      }
+    }
+  }
+  return fallback;
+}
+
+const extractFirstJsonArray = (text: string): Array<Record<string, unknown>> =>
+  extractFirstJson<Array<Record<string, unknown>>>(text, "[", []);
+
+const extractFirstJsonObject = (text: string): Record<string, unknown> =>
+  extractFirstJson<Record<string, unknown>>(text, "{", {});
+
+/**
  * LangChain Service for Innlegg
  * Provides AI-powered content generation, analysis, and coaching
  */
@@ -131,10 +178,10 @@ Analysis:`);
         language: input.language
       });
 
-      // Parse JSON response
-      const jsonMatch = result.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
+      // Extract the first balanced JSON object; tolerate ```json fences / trailing prose.
+      const parsed = extractFirstJsonObject(result);
+      if (Object.keys(parsed).length > 0) {
+        return parsed;
       }
 
       return { rawAnalysis: result };
@@ -234,12 +281,8 @@ Content Ideas:`);
       });
 
       // Parse JSON response
-      const jsonMatch = result.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
-      }
-
-      return [];
+      // Extract only the first balanced JSON array; tolerate fences/trailing prose.
+      return extractFirstJsonArray(result);
     } catch (error) {
       console.error("Error analyzing trends:", error);
       throw new Error("Failed to analyze trends");
@@ -344,12 +387,8 @@ Hashtags:`);
       });
 
       // Parse JSON response
-      const jsonMatch = result.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
-      }
-
-      return [];
+      // Extract only the first balanced JSON array; tolerate fences/trailing prose.
+      return extractFirstJsonArray(result);
     } catch (error) {
       console.error("Error generating hashtags:", error);
       throw new Error("Failed to generate hashtags");
@@ -393,12 +432,8 @@ Content Series:`);
       });
 
       // Parse JSON response
-      const jsonMatch = result.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
-      }
-
-      return [];
+      // Extract only the first balanced JSON array; tolerate fences/trailing prose.
+      return extractFirstJsonArray(result);
     } catch (error) {
       console.error("Error creating content series:", error);
       throw new Error("Failed to create content series");
