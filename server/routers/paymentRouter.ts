@@ -170,8 +170,23 @@ export const paymentRouter = router({
         };
       }
 
+      // Derive the tier from the actual plan row (not a stripe heuristic that
+      // reported every paid user as "PRO" and never recognised Premium).
+      let tier = "FREE";
+      if (subscription.status === "active" && subscription.planId) {
+        const { getDb } = await import("../db");
+        const db = await getDb();
+        if (db) {
+          const { subscriptionPlans } = await import("../../drizzle/schema");
+          const { eq } = await import("drizzle-orm");
+          const [plan] = await db.select().from(subscriptionPlans).where(eq(subscriptionPlans.id, subscription.planId)).limit(1);
+          const nameToTier: Record<string, string> = { Gratis: "FREE", Pro: "PRO", Premium: "ENTERPRISE" };
+          tier = nameToTier[plan?.name ?? ""] ?? "PRO";
+        }
+      }
+
       return {
-        tier: subscription.stripeSubscriptionId ? (subscription.status === "active" ? "PRO" : "FREE") : "FREE",
+        tier,
         status: subscription.status,
         currentPeriodStart: subscription.subscriptionStartDate,
         currentPeriodEnd: subscription.subscriptionEndDate,

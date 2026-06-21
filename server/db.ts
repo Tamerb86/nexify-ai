@@ -411,18 +411,22 @@ export async function updateSubscriptionFromStripe(
     stripeSubscriptionId?: string;
     stripePriceId?: string;
     status?: "trial" | "active" | "cancelled" | "expired";
+    planId?: number;
   }
 ): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   const updates: any = {
     updatedAt: new Date(),
   };
-  
+
   if (stripeData.stripeCustomerId) updates.stripeCustomerId = stripeData.stripeCustomerId;
   if (stripeData.stripeSubscriptionId) updates.stripeSubscriptionId = stripeData.stripeSubscriptionId;
   if (stripeData.stripePriceId) updates.stripePriceId = stripeData.stripePriceId;
+  // Without a planId the active subscription has no monthly cap (enforcePostQuota
+  // returns early on null planId) — so paid users would get unlimited posts.
+  if (stripeData.planId != null) updates.planId = stripeData.planId;
   if (stripeData.status) {
     updates.status = stripeData.status;
     if (stripeData.status === "active") {
@@ -437,6 +441,87 @@ export async function updateSubscriptionFromStripe(
   await db.update(subscriptions)
     .set(updates)
     .where(eq(subscriptions.userId, userId));
+}
+
+/** Internal ENTERPRISE tier is presented as "Premium"; map tier → seeded plan name. */
+const TIER_PLAN_NAME: Record<string, string> = { FREE: "Gratis", PRO: "Pro", ENTERPRISE: "Premium" };
+
+/**
+ * Idempotently seed the subscription_plans table from the single pricing source
+ * (@shared/pricing). Without these rows, active subscriptions have no monthly cap
+ * and Vipps amount-matching fails. Safe to call on every boot.
+ */
+export async function ensureSubscriptionPlans(): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const { subscriptionPlans } = await import("../drizzle/schema");
+  const { eq } = await import("drizzle-orm");
+  const { PLANS, yearlyNOK } = await import("@shared/pricing");
+
+  for (const plan of PLANS) {
+    const name = TIER_PLAN_NAME[plan.key === "PREMIUM" ? "ENTERPRISE" : plan.key] ?? plan.name;
+    const [existing] = await db.select().from(subscriptionPlans).where(eq(subscriptionPlans.name, name)).limit(1);
+    const row = {
+      name,
+      description: plan.tagline,
+      priceMonthly: plan.monthlyNOK > 0 ? plan.monthlyNOK * 100 : null, // øre
+      priceYearly: plan.monthlyNOK > 0 ? yearlyNOK(plan.monthlyNOK) * 100 : null,
+      postsPerMonth: plan.postsPerMonth,
+      imagesPerMonth: plan.monthlyNOK > 0 ? plan.postsPerMonth : 0,
+      canUseDALLE: plan.monthlyNOK > 0 ? 1 : 0,
+      canUseVoiceTraining: plan.monthlyNOK > 0 ? 1 : 0,
+      canUseContentCalendar: plan.monthlyNOK > 0 ? 1 : 0,
+      canUseCompetitorRadar: plan.key === "PREMIUM" ? 1 : 0,
+      canUseWeeklyReports: plan.monthlyNOK > 0 ? 1 : 0,
+    };
+    if (existing) {
+      await db.update(subscriptionPlans).set(row).where(eq(subscriptionPlans.id, existing.id));
+    } else {
+      await db.insert(subscriptionPlans).values(row);
+    }
+  }
+}
+
+/** Look up the seeded plan id for a subscription tier (FREE/PRO/ENTERPRISE). */
+export async function getPlanIdByTier(tier: string): Promise<number | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const { subscriptionPlans } = await import("../drizzle/schema");
+  const { eq } = await import("drizzle-orm");
+  const name = TIER_PLAN_NAME[tier];
+  if (!name) return null;
+  const [plan] = await db.select().from(subscriptionPlans).where(eq(subscriptionPlans.name, name)).limit(1);
+  return plan?.id ?? null;
+}
+
+/**
+ * Record a published post in post_analytics so the analytics dashboard reflects real
+ * activity (the table was never written, so every metric was permanently zero).
+ * Engagement/impressions start at 0 and can be refreshed later by a metrics job.
+ */
+export async function recordPostAnalytics(
+  userId: number,
+  postId: number,
+  platform: "linkedin" | "twitter" | "instagram" | "facebook",
+  publishedAt: Date = new Date()
+): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const { postAnalytics } = await import("../drizzle/schema");
+  try {
+    await db.insert(postAnalytics).values({
+      userId,
+      postId,
+      platform,
+      publishedAt,
+      dayOfWeek: publishedAt.getDay(),
+      hourOfDay: publishedAt.getHours(),
+      engagement: 0,
+      impressions: 0,
+    });
+  } catch (e) {
+    console.warn("[analytics] could not record post analytics:", (e as Error)?.message);
+  }
 }
 
 export async function updateSubscriptionStatus(

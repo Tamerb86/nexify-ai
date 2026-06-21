@@ -186,58 +186,23 @@ export const adminRouter = router({
     )
     .query(async ({ input }) => {
       try {
-        // Mock activity data - in production, this would come from an activity log table
-        const mockActivities = [
-          {
-            id: "1",
-            userId: input.userId,
-            type: "login",
-            description: "Logged in successfully",
-            timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000),
-            ipAddress: "192.168.1.1",
-            success: true,
-          },
-          {
-            id: "2",
-            userId: input.userId,
-            type: "view",
-            description: "Viewed dashboard",
-            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-            ipAddress: "192.168.1.1",
-            success: true,
-          },
-          {
-            id: "3",
-            userId: input.userId,
-            type: "edit",
-            description: "Updated profile",
-            timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000),
-            ipAddress: "192.168.1.1",
-            success: true,
-          },
-          {
-            id: "4",
-            userId: input.userId,
-            type: "login",
-            description: "Login attempt failed",
-            timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000),
-            ipAddress: "192.168.1.2",
-            success: false,
-          },
-          {
-            id: "5",
-            userId: input.userId,
-            type: "logout",
-            description: "Logged out",
-            timestamp: new Date(Date.now() - 25 * 60 * 60 * 1000),
-            ipAddress: "192.168.1.1",
-            success: true,
-          },
-        ];
+        // Real activity log (was previously a hardcoded mock identical for every user).
+        const { getUserActivityLog } = await import("../services/activityLogger");
+        const uid = parseInt(input.userId, 10);
+        const logs = await getUserActivityLog(uid, input.page * input.limit);
+        const mapped = logs.map((l: any) => ({
+          id: String(l.id),
+          userId: input.userId,
+          type: l.activityType,
+          description: l.description ?? "",
+          timestamp: l.createdAt,
+          ipAddress: l.ipAddress ?? null,
+          success: l.success === 1,
+        }));
 
         const offset = (input.page - 1) * input.limit;
-        const data = mockActivities.slice(offset, offset + input.limit);
-        const total = mockActivities.length;
+        const data = mapped.slice(offset, offset + input.limit);
+        const total = mapped.length;
 
         return {
           data,

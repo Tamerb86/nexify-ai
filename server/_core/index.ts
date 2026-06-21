@@ -278,10 +278,15 @@ async function startServer() {
         const productKey = session.metadata?.product_key as string | undefined;
 
         if (userId && productKey) {
-          const { STRIPE_PRODUCTS } = await import("../stripe/products");
+          const { STRIPE_PRODUCTS, getSubscriptionTier } = await import("../stripe/products");
+          const { getPlanIdByTier } = await import("../db");
           const product = (STRIPE_PRODUCTS as any)[productKey];
+          // Attach the plan so the monthly quota is actually enforced (without a
+          // planId, enforcePostQuota treats the active subscription as unlimited).
+          const planId = await getPlanIdByTier(getSubscriptionTier(productKey as any));
           await updateSubscriptionFromStripe(userId, {
             status: "active",
+            planId: planId ?? undefined,
             stripeCustomerId: typeof session.customer === "string" ? session.customer : undefined,
             stripeSubscriptionId: typeof session.subscription === "string" ? session.subscription : undefined,
           });
@@ -381,6 +386,15 @@ async function startServer() {
     if (res.headersSent) return;
     res.status(err?.status || 500).json({ error: "Internal Server Error" });
   });
+
+  // Seed subscription plans so quota enforcement + Vipps amount-matching work.
+  try {
+    const { ensureSubscriptionPlans } = await import("../db");
+    await ensureSubscriptionPlans();
+    console.log("[Plans] subscription_plans ensured");
+  } catch (e) {
+    console.warn("[Plans] could not seed subscription_plans:", (e as Error)?.message);
+  }
 
   // Start scheduler
   startScheduler();
