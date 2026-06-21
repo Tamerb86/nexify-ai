@@ -21,12 +21,16 @@ export function configureSecurityHeaders(app: any) {
       frameguard: {
         action: "deny",
       },
-      // HSTS - Force HTTPS
-      hsts: {
-        maxAge: 31536000, // 1 year
-        includeSubDomains: true,
-        preload: true,
-      },
+      // HSTS - Force HTTPS. Skipped for local/Docker HTTP runs (no TLS) so the
+      // browser is never told to force https on this host.
+      hsts:
+        process.env.DISABLE_HTTPS_REDIRECT === "true"
+          ? false
+          : {
+              maxAge: 31536000, // 1 year
+              includeSubDomains: true,
+              preload: true,
+            },
       // Referrer Policy
       referrerPolicy: {
         policy: "strict-origin-when-cross-origin",
@@ -45,7 +49,9 @@ export function configureSecurityHeaders(app: any) {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "DENY");
     res.setHeader("X-XSS-Protection", "1; mode=block");
-    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+    if (process.env.DISABLE_HTTPS_REDIRECT !== "true") {
+      res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+    }
 
     // Prevent browser caching of sensitive data
     if (req.path.includes("/api/") || req.path.includes("/admin/")) {

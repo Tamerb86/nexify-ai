@@ -61,6 +61,12 @@ async function startServer() {
         frameSrc: ["'self'", "https://js.stripe.com"],
         mediaSrc: ["'self'", "https:"],
         objectSrc: ["'none'"],
+        // Local/Docker HTTP runs (DISABLE_HTTPS_REDIRECT=true) have no TLS, so don't
+        // let the browser upgrade same-origin asset requests to https — they'd 503
+        // and the SPA (Vite client / entry) would never load (blank page).
+        ...(process.env.DISABLE_HTTPS_REDIRECT === "true"
+          ? { upgradeInsecureRequests: null }
+          : {}),
       },
     },
     crossOriginEmbedderPolicy: false,
