@@ -494,6 +494,36 @@ export async function getPlanIdByTier(tier: string): Promise<number | null> {
   return plan?.id ?? null;
 }
 
+/**
+ * Record a published post in post_analytics so the analytics dashboard reflects real
+ * activity (the table was never written, so every metric was permanently zero).
+ * Engagement/impressions start at 0 and can be refreshed later by a metrics job.
+ */
+export async function recordPostAnalytics(
+  userId: number,
+  postId: number,
+  platform: "linkedin" | "twitter" | "instagram" | "facebook",
+  publishedAt: Date = new Date()
+): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const { postAnalytics } = await import("../drizzle/schema");
+  try {
+    await db.insert(postAnalytics).values({
+      userId,
+      postId,
+      platform,
+      publishedAt,
+      dayOfWeek: publishedAt.getDay(),
+      hourOfDay: publishedAt.getHours(),
+      engagement: 0,
+      impressions: 0,
+    });
+  } catch (e) {
+    console.warn("[analytics] could not record post analytics:", (e as Error)?.message);
+  }
+}
+
 export async function updateSubscriptionStatus(
   userId: number,
   status: "trial" | "active" | "cancelled" | "expired"

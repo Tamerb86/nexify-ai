@@ -172,13 +172,14 @@ export const linkedinRouter = router({    // Save LinkedIn app credentials (owne
         // Record the publication locally so "Mine innlegg" reflects it as published
         // (previously the post went live on LinkedIn but left no local trace).
         const publishedAt = new Date();
+        const { createPost, recordPostAnalytics } = await import("../db");
+        let publishedPostId = input.postId;
         if (input.postId) {
           await db.update(posts)
             .set({ status: "published", publishedAt })
             .where(and(eq(posts.id, input.postId), eq(posts.userId, ctx.user.id)));
         } else {
-          const { createPost } = await import("../db");
-          await createPost({
+          const saved = await createPost({
             userId: ctx.user.id,
             platform: "linkedin",
             tone: "professional",
@@ -187,7 +188,9 @@ export const linkedinRouter = router({    // Save LinkedIn app credentials (owne
             status: "published",
             publishedAt,
           });
+          publishedPostId = saved.id;
         }
+        if (publishedPostId) await recordPostAnalytics(ctx.user.id, publishedPostId, "linkedin", publishedAt);
 
         return result;
       }),

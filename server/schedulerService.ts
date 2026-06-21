@@ -2,7 +2,7 @@ import * as cron from 'node-cron';
 import { posts, scheduledPosts, linkedinConnections } from '../drizzle/schema';
 import { eq, and, lte } from 'drizzle-orm';
 import { createLinkedInPost } from './linkedinService';
-import { getDb as getDatabase } from './db';
+import { getDb as getDatabase, recordPostAnalytics } from './db';
 import { notifyOwner } from './_core/notification';
 
 /**
@@ -72,6 +72,7 @@ async function processScheduledPosts() {
           const publishedAt = new Date();
           await db.update(scheduledPosts).set({ status: 'published', publishedAt }).where(eq(scheduledPosts.id, sched.id));
           await db.update(posts).set({ status: 'published', publishedAt }).where(eq(posts.id, post.id));
+          await recordPostAnalytics(post.userId, post.id, 'linkedin', publishedAt);
 
           console.log(`[Scheduler] Published scheduled post ${sched.id} (post ${post.id}) to LinkedIn`);
           await notifyOwner({

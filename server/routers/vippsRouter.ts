@@ -110,7 +110,8 @@ export const vippsRouter = router({
       try {
         await vippsService.cancelPayment(input.orderId);
 
-        // TODO: Update payment status in database
+        const { markPaymentOrderStatus } = await import("../db");
+        await markPaymentOrderStatus(input.orderId, "cancelled");
 
         return { success: true };
       } catch (error) {
@@ -137,7 +138,10 @@ export const vippsRouter = router({
       try {
         await vippsService.refundPayment(input.orderId, input.amount);
 
-        // TODO: Update payment status in database
+        // The payment_orders enum has no "refunded" state, so mark it cancelled
+        // (no longer an active/captured payment) to keep the DB consistent.
+        const { markPaymentOrderStatus } = await import("../db");
+        await markPaymentOrderStatus(input.orderId, "cancelled");
 
         return { success: true };
       } catch (error) {
