@@ -1,5 +1,5 @@
 import * as cron from 'node-cron';
-import { posts } from '../drizzle/schema';
+import { posts, scheduledPosts, linkedinConnections } from '../drizzle/schema';
 import { eq, and, lte } from 'drizzle-orm';
 import { createLinkedInPost } from './linkedinService';
 import { getDb as getDatabase } from './db';
@@ -7,20 +7,19 @@ import { notifyOwner } from './_core/notification';
 
 /**
  * Scheduler Service for Auto-posting
- * 
- * Checks for scheduled posts every minute and publishes them automatically
- * when their scheduledFor time has passed.
+ *
+ * Source of truth is the `scheduled_posts` table — that is what the scheduling API
+ * (schedulingRouter / schedulingService.schedulePost) actually writes. The job picks
+ * up due entries, publishes them, and marks BOTH the scheduled_posts row and the
+ * underlying posts row as published (or failed).
  */
 
 let schedulerTask: cron.ScheduledTask | null = null;
 
-/**
- * Process scheduled posts that are due for publishing with retry logic
- */
 async function processScheduledPosts() {
   let retries = 0;
   const maxRetries = 3;
-  
+
   while (retries < maxRetries) {
     try {
       const db = await getDatabase();
@@ -30,103 +29,81 @@ async function processScheduledPosts() {
       }
 
       const now = new Date();
-      
-      // Find all LinkedIn posts that are scheduled and due for publishing
-      // Only LinkedIn is supported for auto-posting currently
-      const duePosts = await db
+
+      // Due scheduled entries (LinkedIn auto-posting is the only supported channel).
+      const due = await db
         .select()
-        .from(posts)
+        .from(scheduledPosts)
         .where(
           and(
-            eq(posts.status, 'scheduled'),
-            eq(posts.platform, 'linkedin'),
-            lte(posts.scheduledFor, now)
+            eq(scheduledPosts.status, 'scheduled'),
+            eq(scheduledPosts.platform, 'linkedin'),
+            lte(scheduledPosts.scheduledFor, now)
           )
         )
-        .limit(10); // Process max 10 posts at a time
+        .limit(10);
 
-      if (duePosts.length === 0) {
-        return; // No posts to process
+      if (due.length === 0) {
+        return;
       }
 
-      console.log(`[Scheduler] Found ${duePosts.length} posts to publish`);
+      console.log(`[Scheduler] Found ${due.length} scheduled post(s) to publish`);
 
-      for (const post of duePosts) {
+      for (const sched of due) {
         try {
-          // Only auto-post to LinkedIn for now
-          if (post.platform === 'linkedin') {
-            // Get user's LinkedIn connection from database
-            const { linkedinConnections } = await import('../drizzle/schema');
-            const connection = await db
-              .select()
-              .from(linkedinConnections)
-              .where(eq(linkedinConnections.userId, post.userId))
-              .limit(1);
+          const [post] = await db.select().from(posts).where(eq(posts.id, sched.postId)).limit(1);
+          if (!post) throw new Error(`Post ${sched.postId} not found for scheduled entry ${sched.id}`);
 
-            if (!connection[0]) {
-              throw new Error('LinkedIn not connected');
-            }
+          const [connection] = await db
+            .select()
+            .from(linkedinConnections)
+            .where(eq(linkedinConnections.userId, sched.userId))
+            .limit(1);
+          if (!connection) throw new Error('LinkedIn not connected');
 
-            // Post to LinkedIn (token is encrypted at rest)
-            const { decryptSecret } = await import("./_core/tokenCrypto");
-            await createLinkedInPost(
-              decryptSecret(connection[0].accessToken) ?? "",
-              connection[0].personUrn,
-              post.generatedContent
-            );
-            
-            // Update post status to published
-            await db
-              .update(posts)
-              .set({
-                status: 'published',
-                publishedAt: new Date(),
-              })
-              .where(eq(posts.id, post.id));
+          const { decryptSecret } = await import('./_core/tokenCrypto');
+          await createLinkedInPost(
+            decryptSecret(connection.accessToken) ?? '',
+            connection.personUrn,
+            post.generatedContent
+          );
 
-            console.log(`[Scheduler] Successfully published post ${post.id} to LinkedIn`);
+          // Mark published in BOTH tables so the schedule list and "Mine innlegg" agree.
+          const publishedAt = new Date();
+          await db.update(scheduledPosts).set({ status: 'published', publishedAt }).where(eq(scheduledPosts.id, sched.id));
+          await db.update(posts).set({ status: 'published', publishedAt }).where(eq(posts.id, post.id));
 
-            // Notify owner
-            await notifyOwner({
-              title: 'Innlegg publisert',
-              content: `Innlegget ble automatisk publisert til LinkedIn.`,
-            });
-          } else {
-            console.log(`[Scheduler] Skipping post ${post.id} - platform ${post.platform} not supported for auto-posting yet`);
-          }
+          console.log(`[Scheduler] Published scheduled post ${sched.id} (post ${post.id}) to LinkedIn`);
+          await notifyOwner({
+            title: 'Innlegg publisert',
+            content: 'Et planlagt innlegg ble automatisk publisert til LinkedIn.',
+          });
         } catch (error) {
-          console.error(`[Scheduler] Failed to publish post ${post.id}:`, error);
-          
-          // Update post status to failed
+          const reason = (error as Error)?.message || String(error);
+          console.error(`[Scheduler] Failed to publish scheduled post ${sched.id}:`, reason);
           try {
-            await db
-              .update(posts)
-              .set({
-                status: 'failed',
-              })
-              .where(eq(posts.id, post.id));
+            await db.update(scheduledPosts).set({ status: 'failed', failureReason: reason }).where(eq(scheduledPosts.id, sched.id));
+            await db.update(posts).set({ status: 'failed' }).where(eq(posts.id, sched.postId));
           } catch (dbError) {
-            console.error(`[Scheduler] Failed to update post status:`, dbError);
+            console.error('[Scheduler] Failed to record failure status:', dbError);
           }
-
-          // Notify owner about failure
           try {
             await notifyOwner({
               title: 'Publisering feilet',
-              content: `Kunne ikke publisere innlegget til ${post.platform}. Vennligst sjekk innstillingene.`,
+              content: `Kunne ikke publisere planlagt innlegg (${reason}). Sjekk LinkedIn-tilkoblingen.`,
             });
           } catch (notifyError) {
-            console.error(`[Scheduler] Failed to notify owner:`, notifyError);
+            console.error('[Scheduler] Failed to notify owner:', notifyError);
           }
         }
       }
-      return; // Successfully processed, exit retry loop
+      return;
     } catch (error) {
       retries++;
       if (retries < maxRetries) {
-        const delay = 1000 * retries; // Exponential backoff: 1s, 2s, 3s
+        const delay = 1000 * retries;
         console.warn(`[Scheduler] Connection error, retrying in ${delay}ms (${retries}/${maxRetries})...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
       } else {
         console.error('[Scheduler] Error processing scheduled posts after retries:', error);
         return;
@@ -136,8 +113,7 @@ async function processScheduledPosts() {
 }
 
 /**
- * Start the scheduler
- * Runs every minute to check for due posts
+ * Start the scheduler — runs every 5 minutes to check for due posts.
  */
 export function startScheduler() {
   if (schedulerTask) {
@@ -145,7 +121,6 @@ export function startScheduler() {
     return;
   }
 
-  // Run every 5 minutes: '*/5 * * * *'
   schedulerTask = cron.schedule('*/5 * * * *', async () => {
     await processScheduledPosts();
   });
@@ -153,9 +128,6 @@ export function startScheduler() {
   console.log('[Scheduler] Started - checking for scheduled posts every 5 minutes');
 }
 
-/**
- * Stop the scheduler
- */
 export function stopScheduler() {
   if (schedulerTask) {
     void schedulerTask.stop();
@@ -164,9 +136,7 @@ export function stopScheduler() {
   }
 }
 
-/**
- * Manually trigger scheduled posts processing (for testing)
- */
+/** Manually trigger scheduled posts processing (for testing). */
 export async function triggerScheduledPosts() {
   console.log('[Scheduler] Manually triggered');
   await processScheduledPosts();

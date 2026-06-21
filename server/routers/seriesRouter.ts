@@ -96,11 +96,26 @@ export const seriesRouter = router({
           ],
         });
         
-        const content = response.choices[0].message.content;
-        
-        // Create series post entry
+        const content = response.choices[0]?.message?.content;
+        if (typeof content !== "string") throw new Error("Kunne ikke generere innlegg");
+
+        // Persist the generated body as a real draft post so it shows in "Mine innlegg"
+        // (previously only a metadata row was written and the text was lost).
+        const { createPost } = await import("../db");
+        const savedPost = await createPost({
+          userId: ctx.user.id,
+          platform: "linkedin",
+          tone: "professional",
+          rawInput: `${series.title} – Del ${postNumber}`,
+          generatedContent: content,
+          tags: null,
+          status: "draft",
+        });
+
+        // Create series post entry linked to the saved post
         await db.insert(seriesPosts).values({
           seriesId: input.seriesId,
+          postId: savedPost.id,
           partNumber: postNumber,
           title: `${series.title} - Del ${postNumber}`,
           status: "draft",

@@ -12,7 +12,7 @@ export const contentRouter = router({
         keywords: z.array(z.string()).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const { getUserSubscription, enforcePostQuota } = await import("../db");
+        const { getUserSubscription, enforcePostQuota, createPost } = await import("../db");
         const { generateContent } = await import("../openaiService");
 
         // Single source of truth: checks trial/monthly limit AND reserves the slot
@@ -28,13 +28,27 @@ export const contentRouter = router({
           keywords: input.keywords,
         });
 
+        // Persist the generated content as a draft so it shows up under "Mine innlegg".
+        // (Generation previously only counted quota and never saved the post, so the
+        // list stayed empty and work was lost on navigation.)
+        const savedPost = await createPost({
+          userId: ctx.user.id,
+          platform: input.platform,
+          tone: input.tone ?? "professional",
+          rawInput: input.topic,
+          generatedContent: content,
+          tags: input.keywords ?? null,
+          status: "draft",
+        });
+
         // Get updated subscription
         const updatedSubscription = await getUserSubscription(ctx.user.id);
-        
-        return { 
+
+        return {
           content,
+          postId: savedPost.id,
           postsGenerated: updatedSubscription?.postsGenerated || 0,
-          postsRemaining: updatedSubscription?.status === "trial" 
+          postsRemaining: updatedSubscription?.status === "trial"
             ? (updatedSubscription.trialPostsLimit - updatedSubscription.postsGenerated)
             : null,
         };
@@ -200,7 +214,7 @@ export const contentRouter = router({
         repurposeType: z.enum(["platform_adapt", "format_change", "audience_shift", "update"]),
       }))
       .mutation(async ({ ctx, input }) => {
-        const { getUserSubscription, getPostById } = await import("../db");
+        const { getUserSubscription, getPostById, createPost } = await import("../db");
         const { invokeLLM } = await import("../_core/llm");
         
         // Check Pro subscription
@@ -240,8 +254,25 @@ export const contentRouter = router({
         if (typeof repurposedContent !== 'string') {
           throw new Error("Kunne ikke gjenbruke innhold");
         }
-        
-        return { content: repurposedContent };
+
+        // Persist the repurposed content as a draft so it isn't lost and shows up
+        // under "Mine innlegg". Fall back to the source platform if targetPlatform
+        // isn't a known post platform.
+        const validPlatforms = ["linkedin", "twitter", "instagram", "facebook"] as const;
+        const platform = (validPlatforms as readonly string[]).includes(input.targetPlatform)
+          ? (input.targetPlatform as (typeof validPlatforms)[number])
+          : post.platform;
+        const savedPost = await createPost({
+          userId: ctx.user.id,
+          platform,
+          tone: post.tone,
+          rawInput: `Gjenbruk (${input.repurposeType}) av innlegg #${post.id}`,
+          generatedContent: repurposedContent,
+          tags: post.tags ?? null,
+          status: "draft",
+        });
+
+        return { content: repurposedContent, postId: savedPost.id };
       }),
       
     update: protectedProcedure
@@ -278,26 +309,35 @@ export const contentRouter = router({
         const { getDb } = await import("../db");
         const db = await getDb();
         if (!db) throw new Error("Database not available");
-        const { posts } = await import("../../drizzle/schema");
+        const { posts, scheduledPosts } = await import("../../drizzle/schema");
         const { eq, and } = await import("drizzle-orm");
-        
+        const { schedulePost } = await import("../services/schedulingService");
+
         // Verify ownership
-        const post = await db.select().from(posts).where(
+        const [post] = await db.select().from(posts).where(
           and(
             eq(posts.id, input.postId),
             eq(posts.userId, ctx.user.id)
           )
         ).limit(1);
-        
-        if (!post || post.length === 0) {
+
+        if (!post) {
           throw new Error("Post not found or unauthorized");
         }
-        
-        // Update scheduledFor (convert timestamp to Date)
+
+        const when = new Date(input.scheduledFor);
+        // Keep the post's display date AND mark it scheduled.
         await db.update(posts)
-          .set({ scheduledFor: new Date(input.scheduledFor) })
+          .set({ scheduledFor: when, status: "scheduled" })
           .where(eq(posts.id, input.postId));
-        
+
+        // Cancel any prior pending schedule entry, then create a fresh one the
+        // scheduler will actually act on (it reads scheduled_posts, not posts).
+        await db.update(scheduledPosts)
+          .set({ status: "cancelled" })
+          .where(and(eq(scheduledPosts.postId, input.postId), eq(scheduledPosts.status, "scheduled")));
+        await schedulePost(input.postId, ctx.user.id, post.platform, when);
+
         return { success: true };
       }),
   });

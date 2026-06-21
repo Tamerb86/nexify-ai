@@ -136,13 +136,14 @@ export const linkedinRouter = router({    // Save LinkedIn app credentials (owne
     createPost: protectedProcedure
       .input(z.object({
         content: z.string().min(1).max(3000),
+        postId: z.number().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const { getDb } = await import("../db");
         const db = await getDb();
         if (!db) throw new Error("Database not available");
-        const { linkedinConnections } = await import("../../drizzle/schema");
-        const { eq } = await import("drizzle-orm");
+        const { linkedinConnections, posts } = await import("../../drizzle/schema");
+        const { eq, and } = await import("drizzle-orm");
         const { createLinkedInPost, isTokenExpired } = await import("../linkedinService");
         
         // Get user's LinkedIn connection
@@ -167,7 +168,27 @@ export const linkedinRouter = router({    // Save LinkedIn app credentials (owne
           connection[0].personUrn,
           input.content
         );
-        
+
+        // Record the publication locally so "Mine innlegg" reflects it as published
+        // (previously the post went live on LinkedIn but left no local trace).
+        const publishedAt = new Date();
+        if (input.postId) {
+          await db.update(posts)
+            .set({ status: "published", publishedAt })
+            .where(and(eq(posts.id, input.postId), eq(posts.userId, ctx.user.id)));
+        } else {
+          const { createPost } = await import("../db");
+          await createPost({
+            userId: ctx.user.id,
+            platform: "linkedin",
+            tone: "professional",
+            rawInput: "Publisert direkte til LinkedIn",
+            generatedContent: input.content,
+            status: "published",
+            publishedAt,
+          });
+        }
+
         return result;
       }),
   });
