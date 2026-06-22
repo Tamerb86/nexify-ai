@@ -62,26 +62,43 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
     
-    <!-- Google Analytics 4 -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=%VITE_GA4_ID%"></script>
+    <!-- Google Analytics 4 — only loaded when VITE_GA4_ID is actually configured. -->
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', '%VITE_GA4_ID%', {
-        'page_path': window.location.pathname,
-        'anonymize_ip': true
-      });
+      (function () {
+        var id = "%VITE_GA4_ID%";
+        if (id && id.indexOf("%VITE_") !== 0) {
+          var s = document.createElement("script");
+          s.async = true;
+          s.src = "https://www.googletagmanager.com/gtag/js?id=" + id;
+          document.head.appendChild(s);
+          gtag('js', new Date());
+          gtag('config', id, { 'page_path': window.location.pathname, 'anonymize_ip': true });
+        }
+      })();
     </script>
   </head>
 
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script
-      defer
-      src="%VITE_ANALYTICS_ENDPOINT%/umami"
-      data-website-id="%VITE_ANALYTICS_WEBSITE_ID%"></script>
+    <!-- Umami analytics — only injected when configured. Without this guard the
+         unsubstituted "%VITE_ANALYTICS_ENDPOINT%/umami" placeholder fires a malformed
+         same-origin request that the server rejects ("Failed to decode param"). -->
+    <script>
+      (function () {
+        var ep = "%VITE_ANALYTICS_ENDPOINT%";
+        var wid = "%VITE_ANALYTICS_WEBSITE_ID%";
+        if (ep && ep.indexOf("%VITE_") !== 0) {
+          var s = document.createElement("script");
+          s.defer = true;
+          s.src = ep + "/umami";
+          if (wid && wid.indexOf("%VITE_") !== 0) s.setAttribute("data-website-id", wid);
+          document.body.appendChild(s);
+        }
+      })();
+    </script>
   </body>
 
 </html>
