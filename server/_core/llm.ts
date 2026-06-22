@@ -296,10 +296,12 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     payload.tool_choice = normalizedToolChoice;
   }
 
-  payload.max_tokens = 32768
-  payload.thinking = {
-    "budget_tokens": 128
-  }
+  // `thinking` is NOT an OpenAI Chat Completions parameter (a leftover from the old
+  // Manus proxy) — sending it makes the API reject the whole request with
+  // 400 "Unrecognized request argument: thinking", which broke every invokeLLM
+  // feature (Coach, Gjenbruk/repurpose, Series, A/B, Engagement, Hashtags…).
+  // Also cap max_tokens within gpt-4o-mini's 16k completion limit.
+  payload.max_tokens = (params.maxTokens ?? params.max_tokens ?? 4096);
 
   const normalizedResponseFormat = normalizeResponseFormat({
     responseFormat,
