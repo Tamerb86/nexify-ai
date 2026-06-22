@@ -32,6 +32,15 @@ Security overrides written as `"pkg@<x": ">=y"` resolve to the **latest** satisf
 ### Server fails fast on missing config
 `server/_core/validateEnv.ts` runs at boot (called from `index.ts`) and aggregates all required env into one error. Always required: `JWT_SECRET` (≥32), `DATABASE_URL`. Production-required: `OPENAI_API_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `TOKEN_ENCRYPTION_KEY`, `PUBLIC_SITE_URL`. Production warnings (boot but feature degraded/fail-closed): `REDIS_URL`, `VIPPS_SECRET_KEY`, `TELEGRAM_WEBHOOK_SECRET`. Full reference: `.env.example`.
 
+### ⚠️ Runtime gotchas (learned 2026-06-22 — green tsc hides all of these)
+- **The IP rate-limiter must only cover `/api`.** `ipRateLimiter` (`_core/rateLimiter.ts`, 100/min) skips everything not under `/api`. Do NOT mount it globally — a single page load is dozens of asset/Vite-module requests, so a global limiter `429`s the SPA's own bootstrap and the app renders a blank white screen.
+- **`getDb()` passes the schema** (`drizzle(url, { schema, mode: "default" })`). Without it `db.query.*` (Drizzle relational queries) is `undefined`. Both styles work now: `db.select().from(table)` and `db.query.table.findFirst()`.
+- **Never send `thinking` (or other non-OpenAI params) to `invokeLLM`.** OpenAI 400s the whole request on an unrecognized argument, which silently breaks every invokeLLM feature (Coach, repurpose, series, A/B, engagement, hashtags). `_core/llm.ts` targets the OpenAI Chat Completions shape only.
+- **Pricing has ONE source of truth: `shared/pricing.ts`.** Plans = Gratis(2)/Pro(15·199)/Premium(30·399), annual −10%. Landing, `/pricing`, `server/stripe/products.ts`, quotas and `ensureSubscriptionPlans()` (seeds `subscription_plans` at boot) all derive from it — never hard-code a price/limit elsewhere.
+- **Generation persists.** `content.generate`/`repurpose`/`series.generatePost` save a draft `posts` row (so "Mine innlegg" isn't empty). Scheduling source of truth is the **`scheduled_posts`** table (the scheduler reads it, not `posts.status`).
+- **LLM-as-JSON:** extract the first balanced JSON value, don't `JSON.parse` the raw model output (models wrap it in ```json fences / trailing prose). See `extractFirstJson*` in `langchain/service.ts`.
+- **Rendering AI lists:** `analyzeTrends` returns objects `{ topic, contentIdeas }`, not strings — render `idea.topic`, never the raw object (else "Objects are not valid as a React child" crashes the page).
+
 ## Architecture
 
 ### Two layers under `server/`

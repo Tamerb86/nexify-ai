@@ -883,20 +883,28 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📊 Project Status
 
-- **Current Version**: 1.0.0
-- **Status**: Beta (70% production-ready)
-- **Last Updated**: May 7, 2026
+- **Current Version**: 1.1.0
+- **Status**: Beta — core flows verified end-to-end (see `CODE_STATUS_REPORT.md`, Session 2026-06-22)
+- **Last Updated**: June 22, 2026
 - **Maintenance**: Active
+- **Tests**: 278 passing / 2 skipped · `pnpm check` clean · prod bundle boots
+
+### Recent fixes (2026-06-22)
+- Fixed white-screen-on-reload (IP rate-limiter now scoped to `/api`)
+- All AI features restored (removed an invalid `thinking` param sent to OpenAI)
+- Generated content now saved to "Mine innlegg"; scheduler publishes again
+- Unified 3-tier pricing (Gratis 2 · Pro 15 · Premium 30, 10% annual) from one source
+- Settings/relational queries fixed; quotas now enforced for paid plans
 
 ### Roadmap
 
-- [ ] Fix all failing tests (26 tests)
+- [ ] Stripe billing history + invoice PDF (live Stripe)
+- [ ] Persist AI-generated images (`imageUrl` column)
+- [ ] Real analytics engagement (LinkedIn metrics-refresh job)
 - [ ] Add Sentry error tracking
 - [ ] Optimize performance (target: <2s FCP)
-- [ ] Add advanced analytics
 - [ ] Implement team collaboration
 - [ ] Mobile app development
-- [ ] API marketplace
 
 ---
 
@@ -909,8 +917,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Last Updated**: May 7, 2026  
-**Version**: 1.0.0  
+**Last Updated**: June 22, 2026  
+**Version**: 1.1.0  
 **Status**: ✅ Ready for Development | ⚠️ Conditionally Ready for Production
 
 ---

@@ -3,6 +3,58 @@
 
 ---
 
+## Session 2 — 2026-06-22 (runtime bug-fix pass)
+
+The first report verified the bundle *boots*. This pass **ran the real app end-to-end**
+(local MySQL + dev server, logged-in user) and fixed a series of bugs that only surface
+at runtime — most found by clicking through features and reading server/console logs.
+
+### Fixed (all verified live, `pnpm check` green, 278/280 tests)
+- **White screen of death (prod-grade):** the global IP rate-limiter (100/min) counted
+  *every* request — JS chunks, fonts, Vite dev modules — so a normal user reloading a
+  couple of times got `429` on the app's own bootstrap and the SPA never mounted. Scoped
+  the limiter to `/api` only. Also guarded the GA4/Umami scripts in `index.html` (the
+  unsubstituted `%VITE_ANALYTICS_ENDPOINT%/umami` placeholder fired a malformed
+  same-origin request every load).
+- **Every `invokeLLM` AI feature was 400-ing:** `_core/llm.ts` hardcoded
+  `payload.thinking = {…}` (not an OpenAI param — a Manus leftover) → OpenAI rejected
+  every request ("Unrecognized request argument"). This broke AI Coach, Gjenbruk/repurpose,
+  content series, A/B generation, engagement replies, hashtag suggestions. Removed it +
+  capped `max_tokens` to a valid value.
+- **Relational queries dead:** `getDb()` built Drizzle *without* a schema, so `db.query.*`
+  was `undefined` ("Cannot read properties of undefined"). Broke the whole Settings feature
+  + RSS/sitemap generators. Now passes `{ schema, mode: "default" }`.
+- **Generated content was never saved:** `content.generate`/`repurpose`/`series.generatePost`
+  counted quota but wrote no `posts` row, so "Mine innlegg" stayed empty. They now persist a
+  draft (+return `postId`); `linkedin.createPost` records the publication.
+- **Scheduling was architecturally dead:** the scheduler read `posts.status='scheduled'`
+  (never set) while the API wrote to `scheduled_posts`. Scheduler now reads `scheduled_posts`;
+  `content.reschedule` writes there too.
+- **Quota/Vipps:** `subscription_plans` was never seeded (→ unlimited quota + Vipps amount
+  mismatch). Added `ensureSubscriptionPlans()` (boot, from `@shared/pricing`); Stripe activation
+  now sets `planId` so the monthly cap is enforced.
+- **Pricing unified:** 3 tiers (Gratis 2 / Pro 15·199 / Premium 30·399), 10% annual, mirrored
+  across landing, `/pricing`, backend and quotas via the new `shared/pricing.ts` single source.
+- **Trends:** Google Trends fetch (CJS/ESM interop) + AI analysis JSON parse fixed earlier;
+  this pass fixed the **idea panel crashing** the Generate page ("Objects are not valid as a
+  React child" — rendered `{topic,contentIdeas}` objects), and the **search/platform filter**
+  (per-word match so "VM norge" finds "vm i fotball"; trends now tagged for all 4 platforms so
+  the Facebook/Instagram filter doesn't drop everything).
+- **Data correctness:** admin activity log reads the real `activity_log` (was a mock);
+  `post_analytics` is now written on publish (was permanently zero); Vipps cancel/refund
+  persists state; dead Stripe webhook stub deleted; dashboard shows the real plan name +
+  monthly quota (was hardcoded "Pro" / trial limit).
+- **Migration history repaired** (missing `CREATE TABLE`, duplicate migration, 3 tables never
+  created); **Manus de-branded** from docs.
+
+### Still open (need external services / a migration)
+Stripe billing-history + invoice PDF (live Stripe), test-report email (SendGrid), generated-image
+persistence (`imageUrl` column migration), Facebook local persistence, analytics *engagement*
+numbers (needs a LinkedIn metrics-refresh job). The "Trending Topics" sidebar still shows a
+generic label for some items (cosmetic).
+
+---
+
 ## 1. Executive summary
 The project moved from *"non-compiling, insecure, never run"* to *"type-clean, security-hardened, and verified to boot as a real production bundle."* Started with 33 hidden type errors and an undeployable state; ended with a green pipeline and a production artifact that boots and serves. Two **launch-blocking crashes** were caught only by running the actual bundle (not by tsc/tests) and fixed.
 
