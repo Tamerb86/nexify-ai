@@ -8,17 +8,15 @@ const openai = new OpenAI({
   baseURL: `${forgeApiUrl.replace(/\/$/, "")}/v1`,
 });
 
+import { buildContentPrompt, type ContentOptions } from "./promptBuilder";
+import { ENV } from "./_core/env";
+
 export type Platform = "linkedin" | "twitter" | "instagram" | "facebook";
 
 export type ContentTone = "professional" | "casual" | "friendly" | "formal" | "humorous";
 
-export interface GenerateContentParams {
-  platform: Platform;
-  topic: string;
-  tone?: ContentTone;
-  length?: "short" | "medium" | "long";
-  keywords?: string[];
-}
+// Generation now accepts the full expanded option set (see promptBuilder.ContentOptions).
+export type GenerateContentParams = ContentOptions;
 
 const platformInstructions = {
   linkedin: {
@@ -44,54 +42,29 @@ const platformInstructions = {
 };
 
 export async function generateContent(params: GenerateContentParams): Promise<string> {
-  const { platform, topic, tone = "professional", length = "medium", keywords = [] } = params;
-  
-  const platformInfo = platformInstructions[platform];
-  
-  const lengthGuidelines = {
-    short: "Keep it brief and impactful",
-    medium: "Provide good detail and value",
-    long: "Create comprehensive, in-depth content",
-  };
+  const { platform } = params;
 
-  const systemPrompt = `You are an expert social media content creator specializing in ${platform} content.
-Your task is to create engaging, high-quality content that drives engagement and provides value.
-
-Platform: ${platform}
-Style Guidelines: ${platformInfo.style}
-Format: ${platformInfo.format}
-Max Length: ${platformInfo.maxLength} characters
-Tone: ${tone}
-Length Preference: ${lengthGuidelines[length]}
-
-IMPORTANT:
-- Write ONLY the final content, no meta-commentary
-- Do NOT include phrases like "Here's a post" or "This content"
-- Start directly with the content itself
-- Follow ${platform} best practices
-- Make it authentic and valuable
-${keywords.length > 0 ? `- Naturally incorporate these keywords: ${keywords.join(", ")}` : ""}`;
-
-  const userPrompt = `Create a ${platform} post about: ${topic}`;
+  // The prompt-engineering layer: turn the user's options into a professional prompt.
+  const { system, user, maxLength } = buildContentPrompt(params);
 
   try {
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: ENV.contentModel,
       messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
+        { role: "system", content: system },
+        { role: "user", content: user },
       ],
       temperature: 0.8,
       max_tokens: platform === "twitter" ? 100 : 1000,
     });
 
     const content = completion.choices[0]?.message?.content || "";
-    
+
     // Ensure content doesn't exceed platform limits
-    if (content.length > platformInfo.maxLength) {
-      return content.substring(0, platformInfo.maxLength - 3) + "...";
+    if (content.length > maxLength) {
+      return content.substring(0, maxLength - 3) + "...";
     }
-    
+
     return content.trim();
   } catch (error) {
     console.error("Error generating content with OpenAI:", error);
@@ -115,7 +88,7 @@ export async function improveContent(
 
   try {
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: ENV.llmModel,
       messages: [
         {
           role: "system",
@@ -124,6 +97,8 @@ export async function improveContent(
 Platform: ${platform}
 Style Guidelines: ${platformInfo.style}
 Max Length: ${platformInfo.maxLength} characters
+
+CRITICAL: Keep the output in the SAME language as the original content (do not translate it).
 
 Return ONLY the improved content, no explanations or meta-commentary.`,
         },

@@ -190,6 +190,13 @@
       "when": 1781951200000,
       "tag": "0026_add_missing_linkedin_vipps_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "5",
+      "when": 1782154510698,
+      "tag": "0027_famous_genesis",
+      "breakpoints": true
     }
   ]
 }

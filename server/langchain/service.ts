@@ -51,6 +51,24 @@ const extractFirstJsonObject = (text: string): Record<string, unknown> =>
   extractFirstJson<Record<string, unknown>>(text, "{", {});
 
 /**
+ * Turn a language code into an explicit, unambiguous directive for the prompt.
+ * Passing the bare code "no" is risky — a model can read it as the English word
+ * "no" rather than Norwegian, which degrades or breaks Norwegian output.
+ */
+export function languageLabel(code: string): string {
+  switch ((code || "").toLowerCase()) {
+    case "no":
+    case "nb":
+      return "Norwegian (Bokmål) — write the ENTIRE output in natural, idiomatic Norwegian; never translate word-for-word, use æ/ø/å correctly, and avoid unnecessary anglicisms";
+    case "ar":
+      return "Arabic — write the ENTIRE output in clear, natural Modern Standard Arabic";
+    case "en":
+    default:
+      return "English — write the ENTIRE output in clear, natural English";
+  }
+}
+
+/**
  * LangChain Service for Innlegg
  * Provides AI-powered content generation, analysis, and coaching
  */
@@ -66,7 +84,7 @@ export class LangChainService {
     this.llm = new ChatOpenAI({
       openAIApiKey: forgeApiKey,
       temperature: 0.7,
-      model: "gpt-4o-mini",
+      model: process.env.LLM_MODEL || "gpt-4o-mini",
       configuration: {
         baseURL: `${forgeApiUrl.replace(/\/$/, "")}/v1`,
       }
@@ -123,7 +141,7 @@ Generated Content:`);
         tone: input.tone,
         length: input.length,
         keywords: input.keywords,
-        language: input.language,
+        language: languageLabel(input.language),
         vocabularyLevel: input.vocabularyLevel || "medium",
         sentenceLength: input.sentenceLength || "medium",
         emojiUsage: input.emojiUsage || "moderate",
@@ -175,7 +193,7 @@ Analysis:`);
       const result = await chain.invoke({
         content: input.content,
         platform: input.platform,
-        language: input.language
+        language: languageLabel(input.language)
       });
 
       // Extract the first balanced JSON object; tolerate ```json fences / trailing prose.
@@ -277,7 +295,7 @@ Content Ideas:`);
         expertise: input.expertise,
         targetAudience: input.targetAudience,
         contentStyle: input.contentStyle,
-        language: input.language
+        language: languageLabel(input.language)
       });
 
       // Parse JSON response
@@ -335,7 +353,7 @@ Improved Content:`);
         platform: input.platform,
         tone: input.tone,
         length: input.length,
-        language: input.language,
+        language: languageLabel(input.language),
         keywords: input.keywords,
         addEmojis: input.addEmojis ? "yes" : "no",
         addHashtags: input.addHashtags ? "yes" : "no"
@@ -381,7 +399,7 @@ Hashtags:`);
       const result = await chain.invoke({
         content: input.content,
         platform: input.platform,
-        language: input.language,
+        language: languageLabel(input.language),
         numberOfHashtags: input.numberOfHashtags.toString(),
         includeTrending: input.includeTrending ? "yes" : "no"
       });
@@ -428,7 +446,7 @@ Content Series:`);
         numberOfPosts: input.numberOfPosts.toString(),
         platform: input.platform,
         tone: input.tone,
-        language: input.language
+        language: languageLabel(input.language)
       });
 
       // Parse JSON response
