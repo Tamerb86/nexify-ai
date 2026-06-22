@@ -37,6 +37,12 @@ export function getSessionCookieOptions(
     // "lax" protects against CSRF on state-changing GET (OAuth callbacks) while
     // still allowing top-level navigations to send the session cookie.
     sameSite: "lax",
-    secure: isSecureRequest(req),
+    // In production the cookie MUST be Secure (never sent over plain HTTP). The
+    // only exception is the explicit local/demo plain-HTTP mode, where deriving
+    // it from the request keeps dev-login usable without TLS.
+    secure:
+      process.env.NODE_ENV === "production" && process.env.DISABLE_HTTPS_REDIRECT !== "true"
+        ? true
+        : isSecureRequest(req),
   };
 }

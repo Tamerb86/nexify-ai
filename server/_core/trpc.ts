@@ -5,6 +5,17 @@ import type { TrpcContext } from "./context";
 
 const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
+  // Never leak internal error messages or stack traces to clients in production.
+  // Validation (BAD_REQUEST) and explicit auth errors keep their messages; any
+  // unexpected throw (DB errors, etc.) is redacted to a generic message.
+  errorFormatter({ shape, error }) {
+    const isProd = process.env.NODE_ENV === "production";
+    const data = { ...shape.data, stack: isProd ? undefined : shape.data?.stack };
+    if (isProd && error.code === "INTERNAL_SERVER_ERROR") {
+      return { ...shape, message: "Internal server error", data };
+    }
+    return { ...shape, data };
+  },
 });
 
 export const router = t.router;

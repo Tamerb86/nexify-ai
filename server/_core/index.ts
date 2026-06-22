@@ -10,7 +10,7 @@ import { registerLinkedInCallback } from "./linkedinCallback";
 import { registerGoogleOAuthRoutes } from "../routes/googleOAuthRoutes";
 import { registerMonitoringRoutes } from "../routes/monitoringRoutes";
 import { appRouter } from "../routers";
-import { startScheduler } from "../schedulerService";
+import { startScheduler, stopScheduler } from "../schedulerService";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import sitemapRoutes from "../routes/sitemapRoutes";
@@ -162,9 +162,18 @@ async function startServer() {
   
   // Demo/dev login — gated behind an explicit opt-in flag (ENABLE_DEV_LOGIN).
   // Signs you in without OAuth. Accepts GET so it can be opened in a browser.
-  if (process.env.ENABLE_DEV_LOGIN === "true") {
+  // HARD SAFETY: refuse to mount on a real production deploy (HTTPS). It is only
+  // permitted in the explicit local/demo plain-HTTP mode (DISABLE_HTTPS_REDIRECT=true),
+  // so a stray ENABLE_DEV_LOGIN can never open a no-auth admin door on a public host.
+  const devLoginAllowed =
+    process.env.ENABLE_DEV_LOGIN === "true" &&
+    (process.env.NODE_ENV !== "production" || process.env.DISABLE_HTTPS_REDIRECT === "true");
+  if (process.env.ENABLE_DEV_LOGIN === "true" && !devLoginAllowed) {
+    console.error("[SECURITY] Refusing to mount dev-login: ENABLE_DEV_LOGIN=true on a production HTTPS deploy. Unset it or use DISABLE_HTTPS_REDIRECT=true for a local/demo run.");
+  }
+  if (devLoginAllowed) {
     if (process.env.NODE_ENV === "production") {
-      console.warn("[SECURITY] dev-login is ENABLED in production (ENABLE_DEV_LOGIN=true) — local/demo only; NEVER enable on a public deployment.");
+      console.warn("[SECURITY] dev-login ENABLED (production + plain-HTTP demo) — NEVER expose this on a public deployment.");
     }
     app.all("/api/auth/dev-login", async (req, res) => {
       try {
@@ -404,6 +413,44 @@ async function startServer() {
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
   });
+
+  // Graceful shutdown: on deploy/scale-down the platform sends SIGTERM. Stop the
+  // scheduler, drain in-flight HTTP requests (so webhooks/payments aren't severed),
+  // close Redis, then exit. A hard timeout guards against a stuck connection.
+  let shuttingDown = false;
+  const shutdown = async (signal: string) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.log(`[shutdown] ${signal} received — draining...`);
+    const forceExit = setTimeout(() => {
+      console.error("[shutdown] drain timed out, forcing exit");
+      process.exit(1);
+    }, 10_000);
+    forceExit.unref();
+    try {
+      stopScheduler();
+    } catch (e) {
+      console.error("[shutdown] stopScheduler failed:", (e as Error)?.message);
+    }
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+    try {
+      const { getRedis } = await import("./redis");
+      const redis = getRedis();
+      if (redis) await redis.quit();
+    } catch (e) {
+      console.error("[shutdown] redis quit failed:", (e as Error)?.message);
+    }
+    clearTimeout(forceExit);
+    console.log("[shutdown] complete");
+    process.exit(0);
+  };
+  process.on("SIGTERM", () => void shutdown("SIGTERM"));
+  process.on("SIGINT", () => void shutdown("SIGINT"));
 }
 
-startServer().catch(console.error);
+// A fatal boot error must crash the process (so the orchestrator restarts/flags
+// it) rather than leaving a half-initialised server limping.
+startServer().catch((err) => {
+  console.error("[boot] fatal startup error:", err);
+  process.exit(1);
+});
