@@ -120,8 +120,46 @@ export const userRouter = router({
           trialPostsLimit: 2, // mirrors FREE_POSTS in @shared/pricing
         });
       }
-      
-      return subscription;
+
+      // Enrich with the EFFECTIVE limit, plan name and real usage so the UI doesn't
+      // fall back to the trial limit / a hardcoded "Pro" label for active paid plans.
+      let planName = "Gratis";
+      let postsLimit = subscription.trialPostsLimit ?? 2;
+      let postsUsed = subscription.postsGenerated ?? 0;
+
+      if (subscription.status === "active" && subscription.planId) {
+        const { getDb } = await import("../db");
+        const db = await getDb();
+        if (db) {
+          const { subscriptionPlans, userUsageTracking } = await import("../../drizzle/schema");
+          const { eq, and, gte, lte } = await import("drizzle-orm");
+          const [plan] = await db
+            .select()
+            .from(subscriptionPlans)
+            .where(eq(subscriptionPlans.id, subscription.planId))
+            .limit(1);
+          if (plan) {
+            planName = plan.name;
+            if (plan.postsPerMonth != null) postsLimit = plan.postsPerMonth;
+          }
+          const now = new Date();
+          const [usage] = await db
+            .select()
+            .from(userUsageTracking)
+            .where(
+              and(
+                eq(userUsageTracking.userId, ctx.user.id),
+                gte(userUsageTracking.periodEndDate, now),
+                lte(userUsageTracking.periodStartDate, now)
+              )
+            )
+            .limit(1);
+          postsUsed = usage?.postsUsed ?? 0;
+        }
+      }
+
+      const postsRemaining = Math.max(0, postsLimit - postsUsed);
+      return { ...subscription, planName, postsLimit, postsUsed, postsRemaining };
     }),
 
     getInvoices: protectedProcedure.query(async ({ ctx }) => {

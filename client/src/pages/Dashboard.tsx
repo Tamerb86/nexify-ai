@@ -70,9 +70,12 @@ export default function Dashboard() {
     callback();
   };
 
-  const postsRemaining = subscription ? (subscription.trialPostsLimit || 100) - (subscription.postsGenerated || 0) : 0;
-  const usagePercentage = subscription ? ((subscription.postsGenerated || 0) / (subscription.trialPostsLimit || 100)) * 100 : 0;
-  const postsLimit = subscription?.trialPostsLimit || 100;
+  // Use the effective limit/usage from the backend (active plans return the real
+  // monthly cap + usage; trial falls back to the trial fields).
+  const postsLimit = subscription?.postsLimit ?? subscription?.trialPostsLimit ?? 2;
+  const postsUsed = subscription?.postsUsed ?? subscription?.postsGenerated ?? 0;
+  const postsRemaining = subscription?.postsRemaining ?? Math.max(0, postsLimit - postsUsed);
+  const usagePercentage = postsLimit > 0 ? (postsUsed / postsLimit) * 100 : 0;
 
   const platformDistribution = useMemo(() => {
     if (!posts) return [];
@@ -265,7 +268,7 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="text-3xl font-bold text-slate-900 dark:text-white mb-3 tabular-nums">
-                {subscription?.postsGenerated || 0}
+                {postsUsed}
               </div>
               <div className="space-y-2">
                 <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
@@ -275,7 +278,7 @@ export default function Dashboard() {
                   />
                 </div>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">
-                  {subscription?.postsGenerated || 0} / {postsLimit}
+                  {postsUsed} / {postsLimit}
                 </p>
               </div>
             </div>
@@ -311,7 +314,7 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="text-3xl font-bold text-slate-900 dark:text-white mb-3 tabular-nums">
-                {Math.round((subscription?.postsGenerated || 0) * 0.25)}h
+                {Math.round(postsUsed * 0.25)}h
               </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
                 ~15 {language === "no" ? "min spart per innlegg" : "min saved per post"}
@@ -329,7 +332,7 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="text-3xl font-bold text-slate-900 dark:text-white mb-3">
-                {subscription?.status === "trial" ? (language === "no" ? "Gratis" : "Free") : "Pro"}
+                {subscription?.status === "trial" ? (language === "no" ? "Gratis" : "Free") : (subscription?.planName || "Pro")}
               </div>
               {subscription?.status === "trial" ? (
                 <Button 
