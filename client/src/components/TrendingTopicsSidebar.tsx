@@ -129,18 +129,27 @@ export function TrendingTopicsSidebar({
             </div>
           ) : ideas && ideas.length > 0 ? (
             <div className="space-y-2 max-h-[400px] overflow-y-auto">
-              {ideas.slice(0, 5).map((idea: any, idx: number) => (
-                <Button
-                  key={idx}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onTopicSelected?.(idea.title || idea)}
-                  className="w-full justify-start text-left h-auto py-2 px-2 whitespace-normal text-xs"
-                >
-                  <Lightbulb className="h-3 w-3 mr-2 flex-shrink-0 mt-0.5" />
-                  <span className="line-clamp-2">{idea.title || idea}</span>
-                </Button>
-              ))}
+              {ideas.slice(0, 5).map((idea: any, idx: number) => {
+                // analyzeTrends returns objects { topic, contentIdeas }, not a
+                // `title` string — rendering the raw object crashed React with
+                // "Objects are not valid as a React child".
+                const label =
+                  typeof idea === "string"
+                    ? idea
+                    : idea?.topic || idea?.title || idea?.idea || "";
+                return (
+                  <Button
+                    key={idx}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onTopicSelected?.(label)}
+                    className="w-full justify-start text-left h-auto py-2 px-2 whitespace-normal text-xs"
+                  >
+                    <Lightbulb className="h-3 w-3 mr-2 flex-shrink-0 mt-0.5" />
+                    <span className="line-clamp-2">{label}</span>
+                  </Button>
+                );
+              })}
             </div>
           ) : (
             <div className="text-xs text-muted-foreground text-center py-4">
