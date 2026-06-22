@@ -29,8 +29,11 @@ export const ipRateLimiter = rateLimit({
   legacyHeaders: false,
   store: makeStore("rl:ip:"),
   skip: (req) => {
-    // Skip rate limiting for health checks
-    return req.path === "/health";
+    // Only rate-limit the API surface. Static assets, the SPA shell, fonts and (in
+    // dev) Vite's many per-page module requests must NOT count toward the limit — a
+    // single page load is dozens of requests, so otherwise a normal user reloading a
+    // couple of times gets 429'd and the app fails to bootstrap (white screen).
+    return !req.path.startsWith("/api");
   },
 });
 
