@@ -24,12 +24,31 @@ services:
       timeout: 5s
       retries: 30
 
+  # One-shot migration job. Runs `drizzle-kit migrate` exactly once, then exits.
+  # The app waits for it to complete successfully before starting, so the schema
+  # is never modified at app boot or on restart.
+  migrate:
+    build:
+      context: .
+      target: migrator
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: "mysql://nexify:nexify@db:3306/nexify"
+    restart: "no"
+
   app:
-    build: .
+    build:
+      context: .
+      target: runtime
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     environment:
       NODE_ENV: production
       PORT: "5000"

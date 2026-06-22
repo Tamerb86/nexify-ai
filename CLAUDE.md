@@ -16,7 +16,9 @@ pnpm test                 # vitest run (all server/**/*.test.ts)
 npx vitest run server/telegram.actions.test.ts   # single test file
 npx vitest run -t "should activate subscription"  # single test by name
 pnpm build                # vite build + esbuild bundle of the server entry
-pnpm db:push              # drizzle-kit generate && migrate (needs DATABASE_URL)
+pnpm db:generate          # drizzle-kit generate — diff schema.ts → new migration (offline)
+pnpm db:migrate           # drizzle-kit migrate — apply pending migrations (needs DATABASE_URL)
+pnpm db:push              # drizzle-kit push — DEV ONLY direct schema sync (never in prod/CI/Docker)
 pnpm format               # prettier --write .
 ```
 
