@@ -89,7 +89,9 @@ export default function Trends() {
           trendScore,
           traffic,
           growthRate: trend.trafficGrowthRate || 0,
-          suggestedPlatforms: ["linkedin", "twitter"],
+          // A trending topic can inspire content on any platform — don't lock it to
+          // two, or the Facebook/Instagram platform filter excludes every trend.
+          suggestedPlatforms: ["linkedin", "twitter", "instagram", "facebook"],
           tags: (Array.isArray(trend.relatedKeywords) ? trend.relatedKeywords : []) || (Array.isArray(trend.tags) ? trend.tags : []) || [],
           activeTime: trend.activeTime,
         };
@@ -102,9 +104,11 @@ export default function Trends() {
 
   // Filter topics
   const filteredTopics = useMemo(() => trendingTopics.filter((topic: any) => {
-    const matchesSearch = topic.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         topic.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         (Array.isArray(topic.tags) && topic.tags.some((tag: string) => tag && tag.toLowerCase().includes(searchQuery.toLowerCase())));
+    // Match if ANY word of the query appears in the title/description/tags, so a
+    // multi-word search like "VM norge" still finds "vm i fotball" instead of 0.
+    const q = searchQuery.trim().toLowerCase();
+    const haystack = `${topic.title} ${topic.description} ${Array.isArray(topic.tags) ? topic.tags.join(" ") : ""}`.toLowerCase();
+    const matchesSearch = q === "" || q.split(/\s+/).some((word) => word.length > 0 && haystack.includes(word));
     const matchesCategory = selectedCategory === "all" || topic.category === selectedCategory;
     const matchesPlatform = selectedPlatform === "all" || (Array.isArray(topic.suggestedPlatforms) && topic.suggestedPlatforms.includes(selectedPlatform));
     return matchesSearch && matchesCategory && matchesPlatform;
@@ -297,8 +301,18 @@ export default function Trends() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {filteredTopics.length === 0 ? (
               <Card className="col-span-full">
-                <CardContent className="pt-6 text-center">
-                  <p className="text-muted-foreground">Ingen trender funnet. Prøv å justere søket ditt.</p>
+                <CardContent className="pt-6 text-center space-y-4">
+                  <p className="text-muted-foreground">
+                    {searchQuery.trim()
+                      ? `Ingen av dagens topp-trender matchet «${searchQuery.trim()}». Du kan lage innhold om det likevel:`
+                      : "Ingen trender funnet akkurat nå. Prøv å oppdatere."}
+                  </p>
+                  {searchQuery.trim() && (
+                    <Button onClick={() => setLocation(`/generate?topic=${encodeURIComponent(searchQuery.trim())}`)}>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Lag innhold om «{searchQuery.trim()}»
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             ) : (
