@@ -16,7 +16,24 @@ import { notifyOwner } from './_core/notification';
 
 let schedulerTask: cron.ScheduledTask | null = null;
 
+// In-process overlap guard: a run that exceeds the 5-min interval must not be
+// re-entered by the next tick on the same instance.
+let isProcessing = false;
+
 async function processScheduledPosts() {
+  if (isProcessing) {
+    console.log('[Scheduler] Previous run still in progress, skipping this tick');
+    return;
+  }
+  isProcessing = true;
+  try {
+    await processScheduledPostsInner();
+  } finally {
+    isProcessing = false;
+  }
+}
+
+async function processScheduledPostsInner() {
   let retries = 0;
   const maxRetries = 3;
 
@@ -51,6 +68,20 @@ async function processScheduledPosts() {
 
       for (const sched of due) {
         try {
+          // Atomically CLAIM this row before doing any work. Only the worker whose
+          // UPDATE flips 'scheduled' → 'publishing' (affectedRows === 1) proceeds;
+          // any other instance/overlapping run that lost the race skips it. This is
+          // what prevents the same post being published twice across instances.
+          const claim: any = await db
+            .update(scheduledPosts)
+            .set({ status: 'publishing' })
+            .where(and(eq(scheduledPosts.id, sched.id), eq(scheduledPosts.status, 'scheduled')));
+          const claimed = claim?.[0]?.affectedRows ?? claim?.affectedRows ?? 0;
+          if (claimed !== 1) {
+            console.log(`[Scheduler] Scheduled post ${sched.id} already claimed elsewhere, skipping`);
+            continue;
+          }
+
           const [post] = await db.select().from(posts).where(eq(posts.id, sched.postId)).limit(1);
           if (!post) throw new Error(`Post ${sched.postId} not found for scheduled entry ${sched.id}`);
 

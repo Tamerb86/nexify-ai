@@ -1,4 +1,4 @@
-import { desc, eq, and, count, gte, lte } from "drizzle-orm";
+import { desc, eq, and, count, gte, lte, lt, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import * as schema from "../drizzle/schema";
 import { sanitizeHtml } from "./_core/sanitizeHtml";
@@ -178,14 +178,16 @@ export async function enforcePostQuota(userId: number): Promise<void> {
   const [sub] = await db.select().from(subscriptions).where(eq(subscriptions.userId, userId)).limit(1);
   if (!sub) throw new Error("No subscription found");
 
-  // Trial: cumulative total cap.
+  // Trial: cumulative total cap. Increment ATOMICALLY with a conditional update
+  // so concurrent requests can't all read the same count and race past the cap.
   if (sub.status === "trial") {
-    if (sub.postsGenerated >= sub.trialPostsLimit) {
+    const res: any = await db.update(subscriptions)
+      .set({ postsGenerated: sql`${subscriptions.postsGenerated} + 1`, updatedAt: new Date() })
+      .where(and(eq(subscriptions.id, sub.id), lt(subscriptions.postsGenerated, subscriptions.trialPostsLimit)));
+    const affected = res?.[0]?.affectedRows ?? res?.affectedRows ?? 0;
+    if (affected === 0) {
       throw new Error("Trial limit reached. Please upgrade to continue.");
     }
-    await db.update(subscriptions)
-      .set({ postsGenerated: sub.postsGenerated + 1, updatedAt: new Date() })
-      .where(eq(subscriptions.id, sub.id));
     return;
   }
 
@@ -225,7 +227,14 @@ export async function enforcePostQuota(userId: number): Promise<void> {
   }
 
   if (usage) {
-    await db.update(userUsageTracking).set({ postsUsed: used + 1 }).where(eq(userUsageTracking.id, usage.id));
+    // Atomic conditional increment — race-safe against the cap (see trial path).
+    const res: any = await db.update(userUsageTracking)
+      .set({ postsUsed: sql`${userUsageTracking.postsUsed} + 1` })
+      .where(and(eq(userUsageTracking.id, usage.id), lt(userUsageTracking.postsUsed, plan.postsPerMonth)));
+    const affected = res?.[0]?.affectedRows ?? res?.affectedRows ?? 0;
+    if (affected === 0) {
+      throw new Error("Monthly post limit reached. Please upgrade your plan.");
+    }
   } else {
     await db.insert(userUsageTracking).values({
       userId,
