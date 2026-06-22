@@ -1,4 +1,7 @@
 import "dotenv/config"; // load .env before anything reads process.env (no-op in prod if absent)
+import "./instrument"; // initialise Sentry BEFORE express/other modules load (v8+ requirement)
+import * as Sentry from "@sentry/node";
+import { captureException } from "./sentry";
 import express from "express";
 import { createServer } from "http";
 import net from "net";
@@ -360,7 +363,11 @@ async function startServer() {
 
       res.json({ received: true });
     } catch (error) {
+      // Signature-verification failures are expected noise; a thrown Error after
+      // a verified event (e.g. a DB write failing) is a real incident Stripe will
+      // retry — surface it to Sentry so the retry isn't silently invisible.
       console.error("[Stripe Webhook] Error:", error);
+      captureException(error instanceof Error ? error : new Error(String(error)), { scope: "stripe-webhook" });
       res.status(400).json({ error: "Webhook error" });
     }
   });
@@ -387,11 +394,15 @@ async function startServer() {
     serveStatic(app);
   }
 
+  // Report unhandled errors from routes/tRPC/webhooks to Sentry (no-op without DSN).
+  Sentry.setupExpressErrorHandler(app);
+
   // Error-handling middleware — MUST be registered last so it actually catches
   // errors from the routes/tRPC/webhooks above. Fails closed and never leaks
   // internals to clients.
   app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     console.error("[Server Error]", err?.message || err);
+    captureException(err instanceof Error ? err : new Error(String(err?.message || err)));
     if (res.headersSent) return;
     res.status(err?.status || 500).json({ error: "Internal Server Error" });
   });
@@ -447,6 +458,17 @@ async function startServer() {
   process.on("SIGTERM", () => void shutdown("SIGTERM"));
   process.on("SIGINT", () => void shutdown("SIGINT"));
 }
+
+// Last-resort handlers so a stray rejection in the scheduler/a webhook is
+// reported instead of vanishing (or crashing the process unreported).
+process.on("unhandledRejection", (reason) => {
+  console.error("[unhandledRejection]", reason);
+  captureException(reason instanceof Error ? reason : new Error(String(reason)), { kind: "unhandledRejection" });
+});
+process.on("uncaughtException", (err) => {
+  console.error("[uncaughtException]", err);
+  captureException(err, { kind: "uncaughtException" });
+});
 
 // A fatal boot error must crash the process (so the orchestrator restarts/flags
 // it) rather than leaving a half-initialised server limping.
