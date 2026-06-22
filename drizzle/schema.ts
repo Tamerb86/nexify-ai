@@ -353,6 +353,49 @@ export const voiceProfiles = mysqlTable("voice_profiles", {
 export type VoiceProfile = typeof voiceProfiles.$inferSelect;
 export type InsertVoiceProfile = typeof voiceProfiles.$inferInsert;
 
+/**
+ * Generation presets - a named bundle of content-generation options the user
+ * can save once and reuse. Mirrors the fields exposed on the Generate page so a
+ * preset can fully restore the form. Scoped per user; one row may be the default.
+ */
+export const generationPresets = mysqlTable("generation_presets", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("user_id").notNull(),
+  name: varchar("name", { length: 100 }).notNull(),
+
+  // Core options (mirror content.generate input)
+  platform: mysqlEnum("platform", ["linkedin", "twitter", "instagram", "facebook"]).notNull(),
+  tone: varchar("tone", { length: 50 }).notNull(),
+  length: mysqlEnum("length", ["short", "medium", "long"]).default("medium").notNull(),
+  keywords: json("keywords").$type<string[]>(),
+
+  // Expanded "properties"
+  targetAudience: varchar("target_audience", { length: 280 }),
+  goal: mysqlEnum("goal", ["awareness", "engagement", "sales", "leads", "traffic", "community"]),
+  cta: varchar("cta", { length: 280 }),
+  angle: mysqlEnum("angle", [
+    "personal_story", "actionable_tips", "contrarian_opinion", "case_study",
+    "shocking_stat", "how_to", "listicle", "question",
+  ]),
+
+  // Formatting details
+  emojiUsage: mysqlEnum("emoji_usage", ["none", "minimal", "moderate", "heavy"]).default("minimal").notNull(),
+  hashtagCount: int("hashtag_count").default(3).notNull(),
+  useBullets: boolean("use_bullets").default(false).notNull(),
+  closingQuestion: boolean("closing_question").default(true).notNull(),
+  language: mysqlEnum("language", ["no", "en", "ar"]).default("no").notNull(),
+
+  isDefault: boolean("is_default").default(false).notNull(),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("idx_preset_user_id").on(table.userId),
+}));
+
+export type GenerationPreset = typeof generationPresets.$inferSelect;
+export type InsertGenerationPreset = typeof generationPresets.$inferInsert;
+
 
 /**
  * Content Calendar Events - Norwegian + global events for content planning

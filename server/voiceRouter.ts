@@ -60,7 +60,32 @@ export const voiceRouter = router({
     
     const sampleTexts = samples.map((s: any) => s.sampleText);
     const analysis = analyzeWritingSamples(sampleTexts);
-    
+
+    // Best-effort LLM pass to enrich the (regex-based) profile summary. Training
+    // runs rarely, so this is cheap; falls back to the local summary on any error.
+    let profileSummary = analysis.profileSummary;
+    try {
+      const { invokeLLM } = await import("./_core/llm");
+      const joined = sampleTexts.join("\n\n---\n\n").slice(0, 6000);
+      const result = await invokeLLM({
+        messages: [
+          {
+            role: "system",
+            content:
+              "You analyse a person's writing samples and describe their voice so another writer could imitate it. " +
+              "Write 3–5 concise sentences covering tone, vocabulary level, sentence rhythm, recurring phrases, and formatting habits (emojis, lists, questions). " +
+              "Write the description in Norwegian (Bokmål). Output only the description, no preamble.",
+          },
+          { role: "user", content: `Skriveprøver:\n\n${joined}` },
+        ],
+        maxTokens: 400,
+      });
+      const content = result.choices[0]?.message?.content;
+      if (typeof content === "string" && content.trim()) profileSummary = content.trim();
+    } catch (err) {
+      console.error("[voice.trainProfile] LLM summary failed, using local summary:", (err as Error)?.message);
+    }
+
     await db.update(voiceProfiles).set({
       toneProfile: JSON.stringify(analysis.toneProfile),
       vocabularyLevel: analysis.vocabularyLevel,
@@ -71,7 +96,7 @@ export const voiceRouter = router({
       usesHashtags: analysis.usesHashtags ? 1 : 0,
       usesQuestions: analysis.usesQuestions ? 1 : 0,
       usesBulletPoints: analysis.usesBulletPoints ? 1 : 0,
-      profileSummary: analysis.profileSummary,
+      profileSummary,
       samplesCount: samples.length,
       trainingStatus: "trained",
       lastTrainedAt: new Date(),

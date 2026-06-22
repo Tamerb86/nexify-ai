@@ -105,6 +105,103 @@ export default function Generate() {
   const [keywords, setKeywords] = useState("");
   const [postsRemaining] = useState<number | null>(null);
 
+  // ── Expanded generation properties ──
+  const [targetAudience, setTargetAudience] = useState("");
+  const [goal, setGoal] = useState<"" | "awareness" | "engagement" | "sales" | "leads" | "traffic" | "community">("");
+  const [cta, setCta] = useState("");
+  const [angle, setAngle] = useState<
+    "" | "personal_story" | "actionable_tips" | "contrarian_opinion" | "case_study" | "shocking_stat" | "how_to" | "listicle" | "question"
+  >("");
+  const [emojiUsage, setEmojiUsage] = useState<"none" | "minimal" | "moderate" | "heavy">("minimal");
+  const [hashtagCount, setHashtagCount] = useState<number>(3);
+  const [useBullets, setUseBullets] = useState(false);
+  const [closingQuestion, setClosingQuestion] = useState(true);
+  const [language, setLanguage] = useState<"no" | "en" | "ar">("no");
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Voice profile (declared before buildOptions, which depends on it).
+  const { data: voiceProfile } = trpc.voice.getProfile.useQuery();
+  const [useVoiceProfile, setUseVoiceProfile] = useState(false);
+
+  // Build the option object shared by generate + enhance + save-preset.
+  const buildOptions = useCallback(() => ({
+    topic,
+    platform,
+    tone,
+    length,
+    keywords: keywords ? keywords.split(",").map((k) => k.trim()).filter(Boolean) : undefined,
+    targetAudience: targetAudience.trim() || undefined,
+    goal: goal || undefined,
+    cta: cta.trim() || undefined,
+    angle: angle || undefined,
+    emojiUsage,
+    hashtagCount,
+    useBullets,
+    closingQuestion,
+    language,
+    useVoiceProfile,
+  }), [topic, platform, tone, length, keywords, targetAudience, goal, cta, angle, emojiUsage, hashtagCount, useBullets, closingQuestion, language, useVoiceProfile]);
+
+  // ── Named presets ──
+  const presetsQuery = trpc.presets.list.useQuery();
+  const utils = trpc.useUtils();
+  const [presetName, setPresetName] = useState("");
+  const [showSavePreset, setShowSavePreset] = useState(false);
+
+  const applyPreset = (p: NonNullable<typeof presetsQuery.data>[number]) => {
+    setPlatform(p.platform);
+    setTone(p.tone as typeof tone);
+    setLength(p.length);
+    setKeywords((p.keywords ?? []).join(", "));
+    setTargetAudience(p.targetAudience ?? "");
+    setGoal((p.goal ?? "") as typeof goal);
+    setCta(p.cta ?? "");
+    setAngle((p.angle ?? "") as typeof angle);
+    setEmojiUsage(p.emojiUsage);
+    setHashtagCount(p.hashtagCount);
+    setUseBullets(p.useBullets);
+    setClosingQuestion(p.closingQuestion);
+    setLanguage(p.language);
+    setShowAdvanced(true);
+    toast.success(`Forhåndsinnstilling lastet: ${p.name}`);
+  };
+
+  const createPresetMutation = trpc.presets.create.useMutation({
+    onSuccess: () => {
+      utils.presets.list.invalidate();
+      setShowSavePreset(false);
+      setPresetName("");
+      toast.success("Forhåndsinnstilling lagret!");
+    },
+    onError: (e) => toast.error(e.message || "Kunne ikke lagre"),
+  });
+  const deletePresetMutation = trpc.presets.delete.useMutation({
+    onSuccess: () => { utils.presets.list.invalidate(); toast.success("Slettet"); },
+  });
+
+  const handleSavePreset = () => {
+    if (!presetName.trim()) { toast.error("Gi forhåndsinnstillingen et navn"); return; }
+    createPresetMutation.mutate({
+      name: presetName.trim(),
+      platform, tone, length,
+      keywords: keywords ? keywords.split(",").map((k) => k.trim()).filter(Boolean) : undefined,
+      targetAudience: targetAudience.trim() || undefined,
+      goal: goal || undefined,
+      cta: cta.trim() || undefined,
+      angle: angle || undefined,
+      emojiUsage, hashtagCount, useBullets, closingQuestion, language,
+    });
+  };
+
+  // Auto-select the user's default preset on first load (only if form is empty).
+  const appliedDefaultRef = useRef(false);
+  useEffect(() => {
+    if (appliedDefaultRef.current || !presetsQuery.data || topic) return;
+    const def = presetsQuery.data.find((p) => p.isDefault);
+    if (def) { appliedDefaultRef.current = true; applyPreset(def); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [presetsQuery.data]);
+
   // Keyboard shortcuts for undo/redo
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -129,8 +226,6 @@ export default function Generate() {
   const [generatedImagePrompt, setGeneratedImagePrompt] = useState<string | null>(null);
 
   const { data: subscription } = trpc.user.getSubscription.useQuery();
-  const { data: voiceProfile } = trpc.voice.getProfile.useQuery();
-  const [useVoiceProfile, setUseVoiceProfile] = useState(false);
 
   // State for idea tracking
   const [currentIdeaId, setCurrentIdeaId] = useState<number | null>(null);
@@ -236,6 +331,19 @@ export default function Generate() {
     },
   });
 
+  const enhanceMutation = trpc.content.enhanceIdea.useMutation({
+    onSuccess: (data) => {
+      setTopic(data.enhanced);
+      toast.success("Idéen ble forbedret til en proff brief ✨");
+    },
+    onError: (e) => toast.error(e.message || "Kunne ikke forbedre idéen"),
+  });
+
+  const handleEnhanceIdea = () => {
+    if (!topic.trim()) { toast.error("Skriv inn en idé først"); return; }
+    enhanceMutation.mutate(buildOptions());
+  };
+
   const improveMutation = trpc.content.improve.useMutation({
     onSuccess: (data) => {
       setGeneratedContent(data.content);
@@ -252,10 +360,7 @@ export default function Generate() {
       return;
     }
     if (!topic.trim()) { toast.error("Vennligst skriv inn et emne"); return; }
-    generateMutation.mutate({
-      topic, platform, tone, length,
-      keywords: keywords ? keywords.split(",").map((k) => k.trim()).filter(Boolean) : undefined,
-    });
+    generateMutation.mutate(buildOptions());
   };
 
   const handleImprove = (type: string) => {
@@ -435,6 +540,32 @@ export default function Generate() {
           {/* ═══ LEFT COLUMN: Input + Settings (3/5 width) ═══ */}
           <div className="lg:col-span-3 space-y-5">
 
+            {/* ── Preset Bar ── */}
+            {(presetsQuery.data?.length ?? 0) > 0 && (
+              <div className="flex flex-wrap items-center gap-2 px-3 py-2.5 rounded-lg border bg-muted/40">
+                <span className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                  <Save className="h-3.5 w-3.5" /> Forhåndsinnstillinger:
+                </span>
+                {presetsQuery.data!.map((p) => (
+                  <span key={p.id} className="inline-flex items-center rounded-full border bg-background text-xs">
+                    <button
+                      onClick={() => applyPreset(p)}
+                      className="pl-2.5 pr-1.5 py-1 hover:text-indigo-600 font-medium"
+                    >
+                      {p.isDefault ? "★ " : ""}{p.name}
+                    </button>
+                    <button
+                      onClick={() => deletePresetMutation.mutate({ id: p.id })}
+                      className="pr-2 pl-0.5 py-1 text-muted-foreground hover:text-destructive"
+                      aria-label={`Slett ${p.name}`}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
             {/* ── Section 1: Emne (Topic) ── */}
             <Card>
               <CardHeader className="pb-3">
@@ -452,9 +583,26 @@ export default function Generate() {
                   rows={3}
                   className="resize-none text-base"
                 />
-                <p className="text-xs text-muted-foreground mt-2">
-                  Jo mer detaljert du beskriver emnet, desto bedre blir resultatet.
-                </p>
+                <div className="flex items-center justify-between gap-2 mt-2">
+                  <p className="text-xs text-muted-foreground">
+                    Jo mer detaljert du beskriver emnet, desto bedre blir resultatet.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleEnhanceIdea}
+                    disabled={enhanceMutation.isPending || !topic.trim()}
+                    className="shrink-0 border-indigo-200 text-indigo-700 hover:bg-indigo-50 dark:border-indigo-800 dark:text-indigo-300"
+                    title="La AI gjøre om idéen din til en profesjonell brief"
+                  >
+                    {enhanceMutation.isPending ? (
+                      <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Forbedrer...</>
+                    ) : (
+                      <><Sparkles className="h-3.5 w-3.5 mr-1.5" />Forbedre idé</>
+                    )}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
@@ -560,6 +708,161 @@ export default function Generate() {
                   </div>
                 )}
               </CardContent>
+            </Card>
+
+            {/* ── Section 2b: Avanserte egenskaper ── */}
+            <Card>
+              <CardHeader className="pb-3">
+                <button
+                  type="button"
+                  onClick={() => setShowAdvanced((v) => !v)}
+                  className="flex items-center justify-between w-full text-left"
+                >
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <span className="h-6 w-6 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-xs font-bold text-indigo-700 dark:text-indigo-300">+</span>
+                    Avanserte egenskaper
+                    <span className="text-xs text-muted-foreground font-normal ml-1">(valgfritt)</span>
+                  </CardTitle>
+                  <span className="text-sm text-muted-foreground">{showAdvanced ? "▲" : "▼"}</span>
+                </button>
+              </CardHeader>
+              {showAdvanced && (
+                <CardContent className="space-y-4">
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    {/* Target Audience */}
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <Label htmlFor="audience" className="text-sm font-medium">Målgruppe</Label>
+                      <Input
+                        id="audience"
+                        placeholder="F.eks: gründere, utviklere, nybakte foreldre"
+                        value={targetAudience}
+                        onChange={(e) => setTargetAudience(e.target.value)}
+                      />
+                    </div>
+
+                    {/* Goal */}
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-medium">Mål</Label>
+                      <Select value={goal || "none"} onValueChange={(v) => setGoal(v === "none" ? "" : v as typeof goal)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">— Ingen spesifikt —</SelectItem>
+                          <SelectItem value="awareness">📣 Bevissthet</SelectItem>
+                          <SelectItem value="engagement">💬 Engasjement</SelectItem>
+                          <SelectItem value="sales">💰 Salg</SelectItem>
+                          <SelectItem value="leads">🎯 Leads</SelectItem>
+                          <SelectItem value="traffic">🔗 Trafikk</SelectItem>
+                          <SelectItem value="community">🤝 Fellesskap</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Angle */}
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-medium">Vinkel</Label>
+                      <Select value={angle || "none"} onValueChange={(v) => setAngle(v === "none" ? "" : v as typeof angle)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">— Automatisk —</SelectItem>
+                          <SelectItem value="personal_story">📖 Personlig historie</SelectItem>
+                          <SelectItem value="actionable_tips">✅ Konkrete tips</SelectItem>
+                          <SelectItem value="contrarian_opinion">🔥 Kontroversiell mening</SelectItem>
+                          <SelectItem value="case_study">📊 Case-studie</SelectItem>
+                          <SelectItem value="shocking_stat">😮 Overraskende statistikk</SelectItem>
+                          <SelectItem value="how_to">🛠️ Steg-for-steg</SelectItem>
+                          <SelectItem value="listicle">🔢 Liste</SelectItem>
+                          <SelectItem value="question">❓ Spørsmål</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* CTA */}
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <Label htmlFor="cta" className="text-sm font-medium">Call-to-action <span className="text-muted-foreground font-normal">(valgfritt)</span></Label>
+                      <Input
+                        id="cta"
+                        placeholder="F.eks: Last ned guiden, Book en demo, Følg for mer"
+                        value={cta}
+                        onChange={(e) => setCta(e.target.value)}
+                      />
+                    </div>
+
+                    {/* Language */}
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-medium">Språk</Label>
+                      <Select value={language} onValueChange={(v) => setLanguage(v as typeof language)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="no">🇳🇴 Norsk</SelectItem>
+                          <SelectItem value="en">🇬🇧 Engelsk</SelectItem>
+                          <SelectItem value="ar">🇸🇦 Arabisk</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Emoji usage */}
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-medium">Emojis</Label>
+                      <Select value={emojiUsage} onValueChange={(v) => setEmojiUsage(v as typeof emojiUsage)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Ingen</SelectItem>
+                          <SelectItem value="minimal">Minimalt</SelectItem>
+                          <SelectItem value="moderate">Moderat</SelectItem>
+                          <SelectItem value="heavy">Mye</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Hashtag count */}
+                    <div className="space-y-1.5">
+                      <Label htmlFor="hashtags" className="text-sm font-medium">Antall hashtags</Label>
+                      <Input
+                        id="hashtags"
+                        type="number"
+                        min={0}
+                        max={30}
+                        value={hashtagCount}
+                        onChange={(e) => setHashtagCount(Math.max(0, Math.min(30, parseInt(e.target.value) || 0)))}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Toggles */}
+                  <div className="flex flex-wrap gap-4 pt-1">
+                    <label className="flex items-center gap-2 cursor-pointer text-sm">
+                      <input type="checkbox" checked={useBullets} onChange={(e) => setUseBullets(e.target.checked)} className="h-4 w-4 rounded border-gray-300" />
+                      Bruk punktlister
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer text-sm">
+                      <input type="checkbox" checked={closingQuestion} onChange={(e) => setClosingQuestion(e.target.checked)} className="h-4 w-4 rounded border-gray-300" />
+                      Avslutt med spørsmål
+                    </label>
+                  </div>
+
+                  {/* Save as preset */}
+                  <div className="pt-3 border-t">
+                    {!showSavePreset ? (
+                      <Button variant="outline" size="sm" onClick={() => setShowSavePreset(true)}>
+                        <Save className="h-3.5 w-3.5 mr-1.5" />Lagre som forhåndsinnstilling
+                      </Button>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          placeholder="Navn på forhåndsinnstilling"
+                          value={presetName}
+                          onChange={(e) => setPresetName(e.target.value)}
+                          className="h-9"
+                        />
+                        <Button size="sm" onClick={handleSavePreset} disabled={createPresetMutation.isPending}>
+                          {createPresetMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Lagre"}
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => { setShowSavePreset(false); setPresetName(""); }}>Avbryt</Button>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              )}
             </Card>
 
             {/* ── Section 3: Image (Collapsible feel) ── */}

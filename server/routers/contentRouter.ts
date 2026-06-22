@@ -2,15 +2,49 @@
 import { protectedProcedure, router } from "../_core/trpc";
 import { z } from "zod";
 
+// Shared shape for the expanded content-generation "properties". Reused by the
+// generate + enhanceIdea procedures here and (mirrored) by presetsRouter.
+export const contentOptionsShape = {
+  topic: z.string().min(1).max(4000),
+  platform: z.enum(["linkedin", "twitter", "instagram", "facebook"]),
+  tone: z.enum(["professional", "casual", "friendly", "formal", "humorous"]).optional(),
+  length: z.enum(["short", "medium", "long"]).optional(),
+  keywords: z.array(z.string().max(60)).max(20).optional(),
+  // Expanded properties
+  targetAudience: z.string().max(280).optional(),
+  goal: z.enum(["awareness", "engagement", "sales", "leads", "traffic", "community"]).optional(),
+  cta: z.string().max(280).optional(),
+  angle: z
+    .enum([
+      "personal_story", "actionable_tips", "contrarian_opinion", "case_study",
+      "shocking_stat", "how_to", "listicle", "question",
+    ])
+    .optional(),
+  // Formatting details
+  emojiUsage: z.enum(["none", "minimal", "moderate", "heavy"]).optional(),
+  hashtagCount: z.number().int().min(0).max(30).optional(),
+  useBullets: z.boolean().optional(),
+  closingQuestion: z.boolean().optional(),
+  language: z.enum(["no", "en", "ar"]).optional(),
+  // When true, the server loads the user's trained voice profile into the prompt.
+  useVoiceProfile: z.boolean().optional(),
+} as const;
+
+/** Parse a column that may hold a JSON-encoded string array; tolerate junk. */
+function parseStringArray(value: unknown): string[] | undefined {
+  if (Array.isArray(value)) return value.filter((v): v is string => typeof v === "string");
+  if (typeof value !== "string" || !value.trim()) return undefined;
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === "string") : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export const contentRouter = router({
     generate: protectedProcedure
-      .input(z.object({
-        topic: z.string().min(1),
-        platform: z.enum(["linkedin", "twitter", "instagram", "facebook"]),
-        tone: z.enum(["professional", "casual", "friendly", "formal", "humorous"]).optional(),
-        length: z.enum(["short", "medium", "long"]).optional(),
-        keywords: z.array(z.string()).optional(),
-      }))
+      .input(z.object(contentOptionsShape))
       .mutation(async ({ ctx, input }) => {
         const { getUserSubscription, enforcePostQuota, createPost } = await import("../db");
         const { generateContent } = await import("../openaiService");
@@ -19,14 +53,31 @@ export const contentRouter = router({
         // server-side (throws if over quota or subscription unusable).
         await enforcePostQuota(ctx.user.id);
 
-        // Generate content using OpenAI
-        const content = await generateContent({
-          platform: input.platform,
-          topic: input.topic,
-          tone: input.tone,
-          length: input.length,
-          keywords: input.keywords,
-        });
+        // When the user opts in, load their trained voice profile (server-trusted,
+        // never client-supplied) and fold it into the prompt.
+        let voiceProfile;
+        if (input.useVoiceProfile) {
+          const { getDb } = await import("../db");
+          const db = await getDb();
+          if (db) {
+            const { voiceProfiles } = await import("../../drizzle/schema");
+            const { eq } = await import("drizzle-orm");
+            const [vp] = await db.select().from(voiceProfiles).where(eq(voiceProfiles.userId, ctx.user.id)).limit(1);
+            if (vp && vp.trainingStatus === "trained") {
+              voiceProfile = {
+                profileSummary: vp.profileSummary,
+                vocabularyLevel: vp.vocabularyLevel,
+                sentenceStyle: vp.sentenceStyle,
+                favoriteWords: parseStringArray(vp.favoriteWords),
+                signaturePhrases: parseStringArray(vp.signaturePhrases),
+              };
+            }
+          }
+        }
+
+        // Generate content using OpenAI (full expanded option set is forwarded).
+        const { useVoiceProfile: _omit, ...genInput } = input;
+        const content = await generateContent({ ...genInput, voiceProfile });
 
         // Persist the generated content as a draft so it shows up under "Mine innlegg".
         // (Generation previously only counted quota and never saved the post, so the
@@ -54,6 +105,17 @@ export const contentRouter = router({
         };
       }),
       
+    // Prompt-engineering layer: rewrite a plain idea into a sharper, professional
+    // content brief BEFORE generation. Returns the enhanced text for preview/edit;
+    // does not consume post quota.
+    enhanceIdea: protectedProcedure
+      .input(z.object(contentOptionsShape))
+      .mutation(async ({ input }) => {
+        const { enhanceIdea } = await import("../promptBuilder");
+        const enhanced = await enhanceIdea(input);
+        return { enhanced };
+      }),
+
     improve: protectedProcedure
       .input(z.object({
         content: z.string().min(1),

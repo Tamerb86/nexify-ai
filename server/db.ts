@@ -48,7 +48,10 @@ import {
   InsertTrendingHashtag,
   invoices,
   Invoice,
-  InsertInvoice
+  InsertInvoice,
+  generationPresets,
+  GenerationPreset,
+  InsertGenerationPreset
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -661,6 +664,67 @@ export async function deleteSavedExample(exampleId: number): Promise<void> {
   await db.delete(savedExamples).where(eq(savedExamples.id, exampleId));
 }
 
+// ============ Generation Presets ============
+
+export async function getUserPresets(userId: number): Promise<GenerationPreset[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(generationPresets)
+    .where(eq(generationPresets.userId, userId))
+    .orderBy(desc(generationPresets.isDefault), desc(generationPresets.updatedAt));
+}
+
+export async function getPresetById(presetId: number): Promise<GenerationPreset | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const [preset] = await db.select().from(generationPresets).where(eq(generationPresets.id, presetId)).limit(1);
+  return preset;
+}
+
+export async function createPreset(preset: InsertGenerationPreset): Promise<GenerationPreset> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  if (preset.isDefault) await clearDefaultPreset(preset.userId);
+  const [result] = await db.insert(generationPresets).values(preset).$returningId();
+  const [created] = await db.select().from(generationPresets).where(eq(generationPresets.id, result.id));
+  return created!;
+}
+
+export async function updatePreset(
+  presetId: number,
+  userId: number,
+  updates: Partial<InsertGenerationPreset>,
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  if (updates.isDefault) await clearDefaultPreset(userId);
+  // Ownership enforced in-query.
+  await db
+    .update(generationPresets)
+    .set({ ...updates, updatedAt: new Date() })
+    .where(and(eq(generationPresets.id, presetId), eq(generationPresets.userId, userId)));
+}
+
+export async function deletePreset(presetId: number, userId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .delete(generationPresets)
+    .where(and(eq(generationPresets.id, presetId), eq(generationPresets.userId, userId)));
+}
+
+/** Unset isDefault on all of a user's presets (so a new default is exclusive). */
+async function clearDefaultPreset(userId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .update(generationPresets)
+    .set({ isDefault: false })
+    .where(and(eq(generationPresets.userId, userId), eq(generationPresets.isDefault, true)));
+}
+
 // ============================
 // Blog Post Helpers
 // ============================
@@ -760,7 +824,7 @@ export async function deleteUser(userId: number): Promise<void> {
   // Every table carrying a `userId` (dependents first, `users` last).
   const userScopedTables: any[] = [
     s.abTests, s.activityLog, s.backupSchedule, s.competitors, s.contentAnalysis,
-    s.contentSchedule, s.contentSeries, s.deletedPosts, s.drafts, s.hashtagPerformance,
+    s.contentSchedule, s.contentSeries, s.deletedPosts, s.drafts, s.generationPresets, s.hashtagPerformance,
     s.hashtagSuggestions, s.ideas, s.invoices, s.linkedinConnections, s.notificationSettings,
     s.onboardingStatus, s.paymentOrders, s.platformIntegrationSettings, s.platformIntegrations,
     s.postAnalytics, s.postAuditLog, s.postBackups, s.postVersions, s.postingTimesAnalytics,
