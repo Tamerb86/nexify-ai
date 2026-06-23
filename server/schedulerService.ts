@@ -1,6 +1,6 @@
 import * as cron from 'node-cron';
 import { posts, scheduledPosts, linkedinConnections } from '../drizzle/schema';
-import { eq, and, lte } from 'drizzle-orm';
+import { eq, and, lte, lt } from 'drizzle-orm';
 import { createLinkedInPost } from './linkedinService';
 import { getDb as getDatabase, recordPostAnalytics } from './db';
 import { notifyOwner } from './_core/notification';
@@ -46,6 +46,19 @@ async function processScheduledPostsInner() {
       }
 
       const now = new Date();
+
+      // Reaper: reclaim rows stuck in 'publishing' (a worker claimed them, then
+      // crashed before marking the outcome). Mark them 'failed' rather than
+      // re-queue — re-queuing risks double-posting a post that may have already
+      // gone out before the crash. The owner is alerted via the failed state.
+      const STALE_PUBLISHING_MS = 15 * 60 * 1000;
+      const staleBefore = new Date(now.getTime() - STALE_PUBLISHING_MS);
+      const reaped: any = await db
+        .update(scheduledPosts)
+        .set({ status: 'failed', failureReason: 'Stuck in publishing (worker crash) — reset by reaper' })
+        .where(and(eq(scheduledPosts.status, 'publishing'), lt(scheduledPosts.updatedAt, staleBefore)));
+      const reapedCount = reaped?.[0]?.affectedRows ?? reaped?.affectedRows ?? 0;
+      if (reapedCount > 0) console.warn(`[Scheduler] Reaped ${reapedCount} stale 'publishing' row(s)`);
 
       // Due scheduled entries (LinkedIn auto-posting is the only supported channel).
       const due = await db
