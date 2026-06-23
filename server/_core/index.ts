@@ -318,7 +318,7 @@ async function startServer() {
       const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || "";
       
       if (!signature || !webhookSecret) {
-        console.error("[Stripe Webhook] Missing signature or webhook secret");
+        logger.warn("stripe_webhook_missing_signature", { rid: (req as any).id });
         return res.status(400).json({ error: "Missing signature" });
       }
 
@@ -328,11 +328,11 @@ async function startServer() {
         webhookSecret
       );
 
-      console.log(`[Stripe Webhook] Received event: ${event.type}`);
+      logger.info("stripe_webhook_received", { rid: (req as any).id, eventId: event.id, type: event.type });
 
       // Idempotency: ignore events we've already processed (Stripe re-delivers).
       if (!(await markWebhookEventProcessed(event.id, "stripe"))) {
-        console.log(`[Stripe Webhook] Duplicate event ${event.id} ignored`);
+        logger.info("stripe_webhook_duplicate", { rid: (req as any).id, eventId: event.id });
         return res.json({ received: true });
       }
 
@@ -420,7 +420,7 @@ async function startServer() {
       // Signature-verification failures are expected noise; a thrown Error after
       // a verified event (e.g. a DB write failing) is a real incident Stripe will
       // retry — surface it to Sentry so the retry isn't silently invisible.
-      console.error("[Stripe Webhook] Error:", error);
+      logger.error("stripe_webhook_error", { rid: (req as any).id, msg: error instanceof Error ? error.message : String(error) });
       captureException(error instanceof Error ? error : new Error(String(error)), { scope: "stripe-webhook" });
       res.status(400).json({ error: "Webhook error" });
     }
