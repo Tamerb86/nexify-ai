@@ -5,7 +5,9 @@ import { captureException } from "./sentry";
 import express from "express";
 import { createServer } from "http";
 import net from "net";
+import { randomUUID } from "crypto";
 import helmet from "helmet";
+import { logger } from "./logger";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { validateEnv } from "./validateEnv";
 import { registerTelegramWebhook } from "./telegramWebhookRoute";
@@ -50,6 +52,29 @@ async function startServer() {
   // and — in production — payment/security keys). One clear error beats confusing
   // runtime failures later.
   validateEnv();
+
+  // Request correlation id + structured access log. Assigns/propagates
+  // x-request-id so a single request can be traced across logs (and echoed to the
+  // client/Sentry). Logs one structured line per /api request on completion.
+  app.use((req, res, next) => {
+    const rid = (req.headers["x-request-id"] as string) || randomUUID();
+    (req as any).id = rid;
+    res.setHeader("x-request-id", rid);
+    const start = Date.now();
+    res.on("finish", () => {
+      if (req.path.startsWith("/api")) {
+        logger.info("request", {
+          rid,
+          method: req.method,
+          path: req.path,
+          status: res.statusCode,
+          ms: Date.now() - start,
+          uid: (req as any).user?.id,
+        });
+      }
+    });
+    next();
+  });
 
   // Security headers with helmet
   app.use(helmet({
@@ -98,6 +123,31 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "10mb", extended: true }));
   app.use(cookieParser());
 
+  // Explicit CORS allowlist. The SPA is served same-origin (no CORS needed for it),
+  // so this is a deny-by-default policy: only the canonical site URL (PUBLIC_SITE_URL)
+  // plus any CORS_ALLOWED_ORIGINS are permitted to make credentialed cross-origin
+  // calls; every other origin gets no ACAO header and is blocked by the browser.
+  const allowedOrigins = new Set(
+    [process.env.PUBLIC_SITE_URL, ...(process.env.CORS_ALLOWED_ORIGINS?.split(",") ?? [])]
+      .map((o) => o?.trim())
+      .filter((o): o is string => !!o)
+  );
+  app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (origin && allowedOrigins.has(origin)) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
+      res.setHeader("Vary", "Origin");
+      res.setHeader("Access-Control-Allow-Credentials", "true");
+      res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,PATCH,OPTIONS");
+      res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, x-request-id");
+      if (req.method === "OPTIONS") return res.sendStatus(204);
+    } else if (req.method === "OPTIONS") {
+      // Preflight from a non-allowed origin → no CORS headers, end here.
+      return res.sendStatus(204);
+    }
+    next();
+  });
+
   // Global IP-based rate limiting (brute-force / cost-bombing / DoS protection).
   // NOTE: this uses an in-memory store; on serverless (Vercel) back it with a
   // shared store (Upstash/Redis via rate-limit-redis) for it to be effective.
@@ -128,7 +178,11 @@ async function startServer() {
     } catch {
       checks.redis = "down";
     }
-    const ready = checks.database === "ok" && checks.redis !== "down";
+    // DB must be up. Redis: if it's CONFIGURED it must be reachable (a configured-
+    // but-down Redis means rate limiting is silently broken → not ready). When
+    // REDIS_URL is unset, "skipped" doesn't block readiness (single-instance/dev).
+    const redisConfigured = !!process.env.REDIS_URL;
+    const ready = checks.database === "ok" && (redisConfigured ? checks.redis === "ok" : true);
     res.status(ready ? 200 : 503).json({ ready, checks, timestamp: new Date().toISOString() });
   });
 
@@ -400,8 +454,8 @@ async function startServer() {
   // Error-handling middleware — MUST be registered last so it actually catches
   // errors from the routes/tRPC/webhooks above. Fails closed and never leaks
   // internals to clients.
-  app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    console.error("[Server Error]", err?.message || err);
+  app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    logger.error("server_error", { rid: (req as any).id, path: req.path, msg: err?.message || String(err) });
     captureException(err instanceof Error ? err : new Error(String(err?.message || err)));
     if (res.headersSent) return;
     res.status(err?.status || 500).json({ error: "Internal Server Error" });
