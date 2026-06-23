@@ -1,9 +1,9 @@
 // Extracted from server/routers.ts (app-layer feature router).
-import { protectedProcedure, router } from "../_core/trpc";
+import { aiProcedure, router } from "../_core/trpc";
 import { z } from "zod";
 
 export const coachRouter = router({
-    chat: protectedProcedure
+    chat: aiProcedure
       .input(z.object({ message: z.string().min(1) }))
       .mutation(async ({ ctx, input }) => {
         const { invokeLLM } = await import("../_core/llm");

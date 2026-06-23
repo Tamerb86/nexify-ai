@@ -38,6 +38,14 @@ const requireUser = t.middleware(async opts => {
 
 export const protectedProcedure = t.procedure.use(requireUser);
 
+// Use for paid AI endpoints (LLM / image generation). Same as protectedProcedure
+// plus a per-user rate-limit backstop against runaway OpenAI cost / abuse.
+export const aiProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+  const { enforceAiRateLimit } = await import("./aiRateLimit");
+  await enforceAiRateLimit(ctx.user.id);
+  return next();
+});
+
 export const adminProcedure = t.procedure.use(
   t.middleware(async opts => {
     const { ctx, next } = opts;

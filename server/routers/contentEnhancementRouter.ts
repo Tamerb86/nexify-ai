@@ -1,4 +1,4 @@
-import { router, protectedProcedure } from "../_core/trpc";
+import { router, aiProcedure } from "../_core/trpc";
 import { z } from "zod";
 import {
   analyzeContent,
@@ -11,7 +11,7 @@ export const contentEnhancementRouter = router({
   /**
    * Analyze content and get comprehensive enhancement suggestions
    */
-  analyzeContent: protectedProcedure
+  analyzeContent: aiProcedure
     .input(
       z.object({
         content: z.string().min(10),
@@ -34,7 +34,7 @@ export const contentEnhancementRouter = router({
   /**
    * Get writing improvement suggestions
    */
-  getWritingSuggestions: protectedProcedure
+  getWritingSuggestions: aiProcedure
     .input(
       z.object({
         content: z.string().min(10),
@@ -58,7 +58,7 @@ export const contentEnhancementRouter = router({
   /**
    * Get hashtag optimization suggestions
    */
-  getHashtagSuggestions: protectedProcedure
+  getHashtagSuggestions: aiProcedure
     .input(
       z.object({
         content: z.string().min(10),
@@ -82,7 +82,7 @@ export const contentEnhancementRouter = router({
   /**
    * Get CTA improvement suggestions
    */
-  getCTASuggestions: protectedProcedure
+  getCTASuggestions: aiProcedure
     .input(
       z.object({
         content: z.string().min(10),
@@ -106,7 +106,7 @@ export const contentEnhancementRouter = router({
   /**
    * Get tone analysis and consistency suggestions
    */
-  getToneAnalysis: protectedProcedure
+  getToneAnalysis: aiProcedure
     .input(
       z.object({
         content: z.string().min(10),
@@ -130,7 +130,7 @@ export const contentEnhancementRouter = router({
   /**
    * Apply enhancement suggestions to content
    */
-  applySuggestions: protectedProcedure
+  applySuggestions: aiProcedure
     .input(
       z.object({
         content: z.string().min(10),
@@ -176,7 +176,7 @@ export const contentEnhancementRouter = router({
   /**
    * Compare two versions of content
    */
-  compareVersions: protectedProcedure
+  compareVersions: aiProcedure
     .input(
       z.object({
         originalContent: z.string().min(10),
@@ -199,7 +199,7 @@ export const contentEnhancementRouter = router({
   /**
    * Get quick content score
    */
-  getContentScore: protectedProcedure
+  getContentScore: aiProcedure
     .input(
       z.object({
         content: z.string().min(10),
@@ -227,7 +227,7 @@ export const contentEnhancementRouter = router({
   /**
    * Get full enhancement report
    */
-  getFullReport: protectedProcedure
+  getFullReport: aiProcedure
     .input(
       z.object({
         content: z.string().min(10),

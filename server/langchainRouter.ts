@@ -1,4 +1,4 @@
-import { router, protectedProcedure } from "./_core/trpc";
+import { router, aiProcedure } from "./_core/trpc";
 import { z } from "zod";
 
 /**
@@ -15,7 +15,7 @@ export const langchainRouter = router({
   /**
    * Generate content with voice profile
    */
-  generateWithVoice: protectedProcedure
+  generateWithVoice: aiProcedure
     .input(
       z.object({
         platform: z.enum(["linkedin", "twitter", "facebook", "instagram"]),
@@ -60,7 +60,7 @@ export const langchainRouter = router({
   /**
    * Analyze content quality and engagement potential
    */
-  analyzeContent: protectedProcedure
+  analyzeContent: aiProcedure
     .input(
       z.object({
         content: z.string().min(10).max(5000),
@@ -91,7 +91,7 @@ export const langchainRouter = router({
   /**
    * AI Coach conversation
    */
-  coachChat: protectedProcedure
+  coachChat: aiProcedure
     .input(
       z.object({
         userMessage: z.string().min(1).max(2000),
@@ -127,7 +127,7 @@ export const langchainRouter = router({
   /**
    * Analyze trends and get content ideas
    */
-  analyzeTrends: protectedProcedure
+  analyzeTrends: aiProcedure
     .input(
       z.object({
         trends: z.string().min(10),
@@ -164,7 +164,7 @@ export const langchainRouter = router({
   /**
    * Improve existing content
    */
-  improveContent: protectedProcedure
+  improveContent: aiProcedure
     .input(
       z.object({
         originalContent: z.string().min(10).max(5000),
@@ -205,7 +205,7 @@ export const langchainRouter = router({
   /**
    * Generate hashtags
    */
-  generateHashtags: protectedProcedure
+  generateHashtags: aiProcedure
     .input(
       z.object({
         content: z.string().min(10).max(5000),
@@ -240,7 +240,7 @@ export const langchainRouter = router({
   /**
    * Create content series
    */
-  createContentSeries: protectedProcedure
+  createContentSeries: aiProcedure
     .input(
       z.object({
         topic: z.string().min(5).max(500),
