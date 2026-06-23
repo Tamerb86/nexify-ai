@@ -416,8 +416,18 @@ async function startServer() {
     console.warn("[Plans] could not seed subscription_plans:", (e as Error)?.message);
   }
 
-  // Start scheduler
-  startScheduler();
+  // Start the auto-publish scheduler — but ONLY where it's meant to run.
+  // It is an in-process node-cron loop, so it must run on exactly ONE instance:
+  //  - single long-lived container (recommended): leave RUN_SCHEDULER unset/"true".
+  //  - horizontally scaled / serverless: set RUN_SCHEDULER=false on web instances
+  //    and run a single dedicated worker (or an external cron) with it "true".
+  // Running it on every instance would multiply cron loops (the per-row claim
+  // prevents double-publish, but that's a safety net, not the intended topology).
+  if (process.env.RUN_SCHEDULER !== "false") {
+    startScheduler();
+  } else {
+    console.log("[Scheduler] Disabled on this instance (RUN_SCHEDULER=false)");
+  }
 
   const port = await findAvailablePort(process.env.PORT ? parseInt(process.env.PORT, 10) : 3000);
 
