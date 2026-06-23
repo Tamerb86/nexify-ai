@@ -123,6 +123,31 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "10mb", extended: true }));
   app.use(cookieParser());
 
+  // Explicit CORS allowlist. The SPA is served same-origin (no CORS needed for it),
+  // so this is a deny-by-default policy: only the canonical site URL (PUBLIC_SITE_URL)
+  // plus any CORS_ALLOWED_ORIGINS are permitted to make credentialed cross-origin
+  // calls; every other origin gets no ACAO header and is blocked by the browser.
+  const allowedOrigins = new Set(
+    [process.env.PUBLIC_SITE_URL, ...(process.env.CORS_ALLOWED_ORIGINS?.split(",") ?? [])]
+      .map((o) => o?.trim())
+      .filter((o): o is string => !!o)
+  );
+  app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (origin && allowedOrigins.has(origin)) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
+      res.setHeader("Vary", "Origin");
+      res.setHeader("Access-Control-Allow-Credentials", "true");
+      res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,PATCH,OPTIONS");
+      res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, x-request-id");
+      if (req.method === "OPTIONS") return res.sendStatus(204);
+    } else if (req.method === "OPTIONS") {
+      // Preflight from a non-allowed origin → no CORS headers, end here.
+      return res.sendStatus(204);
+    }
+    next();
+  });
+
   // Global IP-based rate limiting (brute-force / cost-bombing / DoS protection).
   // NOTE: this uses an in-memory store; on serverless (Vercel) back it with a
   // shared store (Upstash/Redis via rate-limit-redis) for it to be effective.
