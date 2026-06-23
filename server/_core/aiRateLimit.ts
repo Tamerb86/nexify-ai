@@ -1,4 +1,10 @@
 /**
+ * Copyright © 2026 Nexify CRM Systems AS. All rights reserved.
+ * Org.nr: 936300278 — Proprietary and confidential.
+ * Unauthorized copying, distribution, or use is strictly prohibited.
+ */
+
+/**
  * Per-user rate-limit backstop for paid AI endpoints (LLM / image generation).
  *
  * This is a SAFETY NET against runaway cost and abuse — NOT the billing model.

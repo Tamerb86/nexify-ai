@@ -1,3 +1,9 @@
+/**
+ * Copyright © 2026 Nexify CRM Systems AS. All rights reserved.
+ * Org.nr: 936300278 — Proprietary and confidential.
+ * Unauthorized copying, distribution, or use is strictly prohibited.
+ */
+
 import OpenAI from "openai";
 
 const forgeApiUrl = process.env.BUILT_IN_FORGE_API_URL || "https://api.openai.com";

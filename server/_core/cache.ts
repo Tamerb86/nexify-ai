@@ -1,4 +1,10 @@
 /**
+ * Copyright © 2026 Nexify CRM Systems AS. All rights reserved.
+ * Org.nr: 936300278 — Proprietary and confidential.
+ * Unauthorized copying, distribution, or use is strictly prohibited.
+ */
+
+/**
  * Simple In-Memory Cache Implementation
  * Used for caching frequently accessed data to reduce database queries
  */

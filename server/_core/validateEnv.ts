@@ -1,4 +1,10 @@
 /**
+ * Copyright © 2026 Nexify CRM Systems AS. All rights reserved.
+ * Org.nr: 936300278 — Proprietary and confidential.
+ * Unauthorized copying, distribution, or use is strictly prohibited.
+ */
+
+/**
  * Boot-time environment validation. Aggregates all config problems into one
  * actionable error so misconfiguration fails fast and clearly instead of
  * surfacing as confusing runtime failures later.

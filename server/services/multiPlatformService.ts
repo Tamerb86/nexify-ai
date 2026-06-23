@@ -1,4 +1,10 @@
 /**
+ * Copyright © 2026 Nexify CRM Systems AS. All rights reserved.
+ * Org.nr: 936300278 — Proprietary and confidential.
+ * Unauthorized copying, distribution, or use is strictly prohibited.
+ */
+
+/**
  * Multi-Platform Content Distribution Service
  * Handles posting content to multiple social media platforms simultaneously
  */

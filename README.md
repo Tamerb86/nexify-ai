@@ -5,7 +5,7 @@
 ![Version](https://img.shields.io/badge/version-1.0.0-blue)
 ![Node.js](https://img.shields.io/badge/node.js-22.13.0-green)
 ![React](https://img.shields.io/badge/react-19.2.1-61dafb)
-![License](https://img.shields.io/badge/license-MIT-green)
+![License](https://img.shields.io/badge/license-Proprietary-red)
 
 ---
 
@@ -876,7 +876,13 @@ To request features:
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+**Proprietary and confidential.**
+
+Copyright © 2026 Nexify CRM Systems AS. All rights reserved. (Org.nr: 936300278)
+
+This source code is proprietary and confidential. Unauthorized copying,
+distribution, or use is strictly prohibited. See the [LICENSE](LICENSE) file for
+the full terms.
 
 ---
 

@@ -1,4 +1,10 @@
 /**
+ * Copyright © 2026 Nexify CRM Systems AS. All rights reserved.
+ * Org.nr: 936300278 — Proprietary and confidential.
+ * Unauthorized copying, distribution, or use is strictly prohibited.
+ */
+
+/**
  * Voice Analysis Engine - Analyzes user's writing samples to extract style characteristics
  * Uses NLP techniques to identify tone, vocabulary, patterns, and formatting preferences
  */

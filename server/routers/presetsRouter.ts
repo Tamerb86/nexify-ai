@@ -1,3 +1,9 @@
+/**
+ * Copyright © 2026 Nexify CRM Systems AS. All rights reserved.
+ * Org.nr: 936300278 — Proprietary and confidential.
+ * Unauthorized copying, distribution, or use is strictly prohibited.
+ */
+
 // Named generation presets: a reusable bundle of content-generation options.
 import { protectedProcedure, router } from "../_core/trpc";
 import { z } from "zod";
