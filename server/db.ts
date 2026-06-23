@@ -600,14 +600,6 @@ export async function saveContentAnalysis(analysis: InsertContentAnalysis): Prom
   return newAnalysis!;
 }
 
-export async function getContentAnalysisByPostId(postId: number): Promise<ContentAnalysis | undefined> {
-  const db = await getDb();
-  if (!db) return undefined;
-
-  const [analysis] = await db.select().from(contentAnalysis).where(eq(contentAnalysis.postId, postId)).limit(1);
-  return analysis;
-}
-
 export async function getUserAnalysisHistory(userId: number, limit: number = 30): Promise<ContentAnalysis[]> {
   const db = await getDb();
   if (!db) return [];
@@ -1430,17 +1422,6 @@ export async function getHashtagSuggestions(userId: number, limit: number = 10):
     .where(eq(hashtagSuggestions.userId, userId))
     .orderBy(desc(hashtagSuggestions.createdAt))
     .limit(limit);
-}
-
-export async function getHashtagSuggestionByPostId(postId: number): Promise<HashtagSuggestion | undefined> {
-  const db = await getDb();
-  if (!db) return undefined;
-  
-  const [suggestion] = await db.select()
-    .from(hashtagSuggestions)
-    .where(eq(hashtagSuggestions.postId, postId))
-    .limit(1);
-  return suggestion;
 }
 
 // ============ Hashtag Performance Queries ============
