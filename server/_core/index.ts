@@ -1,3 +1,9 @@
+/**
+ * Copyright © 2026 Nexify CRM Systems AS. All rights reserved.
+ * Org.nr: 936300278 — Proprietary and confidential.
+ * Unauthorized copying, distribution, or use is strictly prohibited.
+ */
+
 import "dotenv/config"; // load .env before anything reads process.env (no-op in prod if absent)
 import "./instrument"; // initialise Sentry BEFORE express/other modules load (v8+ requirement)
 import * as Sentry from "@sentry/node";

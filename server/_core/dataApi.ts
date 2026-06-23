@@ -1,4 +1,10 @@
 /**
+ * Copyright © 2026 Nexify CRM Systems AS. All rights reserved.
+ * Org.nr: 936300278 — Proprietary and confidential.
+ * Unauthorized copying, distribution, or use is strictly prohibited.
+ */
+
+/**
  * Quick example (matches curl usage):
  *   await callDataApi("Youtube/search", {
  *     query: { gl: "US", hl: "en", q: "manus" },

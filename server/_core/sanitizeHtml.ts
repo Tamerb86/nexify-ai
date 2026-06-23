@@ -1,4 +1,10 @@
 /**
+ * Copyright © 2026 Nexify CRM Systems AS. All rights reserved.
+ * Org.nr: 936300278 — Proprietary and confidential.
+ * Unauthorized copying, distribution, or use is strictly prohibited.
+ */
+
+/**
  * Server-side HTML sanitization for stored rich-text (blog content).
  * Defense-in-depth: the DB never holds an active XSS payload, so any consumer
  * that renders the HTML (RSS, email, a future SSR path) is safe even if it

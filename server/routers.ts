@@ -1,3 +1,9 @@
+/**
+ * Copyright © 2026 Nexify CRM Systems AS. All rights reserved.
+ * Org.nr: 936300278 — Proprietary and confidential.
+ * Unauthorized copying, distribution, or use is strictly prohibited.
+ */
+
 import { router } from "./_core/trpc";
 import { systemRouter } from "./_core/systemRouter";
 import { voiceRouter } from "./voiceRouter";

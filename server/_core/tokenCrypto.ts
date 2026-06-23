@@ -1,4 +1,10 @@
 /**
+ * Copyright © 2026 Nexify CRM Systems AS. All rights reserved.
+ * Org.nr: 936300278 — Proprietary and confidential.
+ * Unauthorized copying, distribution, or use is strictly prohibited.
+ */
+
+/**
  * Symmetric encryption for secrets stored at rest (OAuth access/refresh tokens).
  * AES-256-GCM with a random 12-byte IV per value and an auth tag (tamper-evident).
  *
