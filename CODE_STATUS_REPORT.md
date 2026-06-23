@@ -48,6 +48,18 @@ for the items intentionally deferred.
   path (they were imported eagerly via `appRouter`).
 - Admin revenue derived from `shared/pricing.ts`; dead code removed.
 
+### Follow-up hardening (same branch, 2026-06-23)
+- **Scheduler deployment safety:** the in-process cron is now gated behind
+  `RUN_SCHEDULER` — run it on exactly one instance (`false` on web instances when
+  scaling) so it doesn't multiply or silently fail on serverless.
+- **AI cost backstop:** new `aiProcedure` (per-user rate limit,
+  `AI_RATE_PER_MINUTE`/`AI_RATE_PER_DAY`, Redis-or-memory) on every previously
+  unmetered paid LLM/image endpoint — caps runaway OpenAI cost/abuse. (Per-plan AI
+  quota remains a product decision — see backlog §1.)
+- **OAuth login CSRF fixed:** the Google login flow now uses `state` + PKCE
+  (short-lived httpOnly cookies; constant-time verify on callback). Needs a live
+  end-to-end login test before merge.
+
 ### Also (from the prior expanded-options work on this branch)
 - Expanded generation options + named **presets** (`generation_presets`, migration
   `0027`), a structured **prompt-builder** layer + LLM "enhance idea", Norwegian

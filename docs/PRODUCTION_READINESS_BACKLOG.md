@@ -8,7 +8,13 @@
 
 ---
 
-## 1. AI quota gating (highest priority — financial risk) 🔴
+## 1. AI quota gating (highest priority — financial risk) 🟡 (backstop shipped)
+
+> **Update (2026-06-23):** a per-user **rate-limit backstop** now covers every
+> endpoint listed below via the new `aiProcedure` (`server/_core/aiRateLimit.ts`,
+> `AI_RATE_PER_MINUTE`/`AI_RATE_PER_DAY`) — this stops runaway-cost/abuse. What
+> remains is the **per-plan AI quota/credit model** (the product decision below);
+> the backstop is a safety net, not billing.
 
 **Problem.** `enforcePostQuota` is wired into only `content.generate`
 (`server/routers/contentRouter.ts`). Every other paid LLM path runs OpenAI work
@@ -100,10 +106,10 @@ clone before touching prod. **Effort:** S (but needs prod DB access + care).
 
 ## 5. Smaller follow-ups 🟢
 
-- **Stuck-`publishing` reaper is single-instance.** `server/schedulerService.ts`
-  now reaps rows stuck >15 min and the per-row claim prevents double-publish, but
-  the scheduler still runs in **every** instance. For multi-instance, prefer a
-  single leader-elected worker (or a DB advisory lock) over N cron loops.
+- **Scheduler topology.** The cron is now gated behind `RUN_SCHEDULER` (run it on
+  exactly one instance) + per-row claim + a reaper for stuck `publishing` rows.
+  Still ideal for scale: a single leader-elected worker (or DB advisory lock)
+  instead of relying on operators setting `RUN_SCHEDULER=false` on web instances.
 - **`/ready` treats Redis `skipped` as ready** (`server/_core/index.ts`). Fine
   while running without Redis, but once Redis is mandatory in prod, make
   `redis:"skipped"` fail readiness (or at least alert). Tied to making
@@ -111,10 +117,10 @@ clone before touching prod. **Effort:** S (but needs prod DB access + care).
 - **Session/JWT lifetime is ~1 year with no rotation/revocation**
   (`shared/const.ts`, `server/_core/sdk.ts`). Consider shorter sessions + sliding
   refresh + a revocation/token-version mechanism.
-- **OAuth login CSRF:** the Google **login** callback
-  (`server/routes/googleOAuthRoutes.ts`) doesn't use the signed-`state`/PKCE that
-  the *connect* flows use (`server/_core/oauthState.ts`). Add `state`/PKCE to the
-  login flow.
+- ~~**OAuth login CSRF**~~ ✅ **DONE (2026-06-23):** the Google login flow now mints
+  a random `state` + PKCE verifier (short-lived httpOnly cookies) and the callback
+  verifies `state` constant-time + exchanges with the verifier. ⚠️ still needs a
+  live end-to-end Google login test before merge.
 - **CSP `script-src` includes `'unsafe-inline'`** (`server/_core/index.ts`) —
   move to nonce/hash-based inline scripts to restore XSS protection.
 - **Hardcoded plan prices in client copy** (BillingManagement, Settings,
@@ -139,3 +145,6 @@ clone before touching prod. **Effort:** S (but needs prod DB access + care).
 - CI pipeline (typecheck / test / build / boot-smoke).
 - LangChain and Stripe SDK lazy-loaded off the cold-start path.
 - Admin revenue derived from `shared/pricing.ts`; dead code removed.
+- `RUN_SCHEDULER` gate so the in-process cron runs on exactly one instance.
+- Per-user AI rate-limit backstop (`aiProcedure`) on all paid LLM/image endpoints.
+- OAuth `state` + PKCE on the Google login flow (login-CSRF fix; pending live test).
