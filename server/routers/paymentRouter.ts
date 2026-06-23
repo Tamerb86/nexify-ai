@@ -6,8 +6,10 @@
 
 import { router, protectedProcedure, publicProcedure } from "../_core/trpc";
 import { z } from "zod";
-import { createCheckoutSession, getCheckoutSession, cancelSubscription, createCustomerPortalSession } from "../stripe/stripeService";
-import { ProductKey, STRIPE_PRODUCTS } from "../stripe/products";
+// stripeService instantiates the Stripe SDK at module load, so it's imported
+// LAZILY inside each procedure (below) to keep it off the server boot path.
+// products.ts is light config + types and stays eager.
+import { STRIPE_PRODUCTS, type ProductKey } from "../stripe/products";
 import { getUserSubscription, updateSubscription, getUserPosts } from "../db";
 import { TRPCError } from "@trpc/server";
 
@@ -106,6 +108,7 @@ export const paymentRouter = router({
         }
 
         // For paid tiers, create checkout session
+        const { createCheckoutSession } = await import("../stripe/stripeService");
         const result = await createCheckoutSession({
           userId: ctx.user.id,
           userEmail: ctx.user.email || "",
@@ -136,6 +139,7 @@ export const paymentRouter = router({
     .input(z.object({ sessionId: z.string() }))
     .query(async ({ input }) => {
       try {
+        const { getCheckoutSession } = await import("../stripe/stripeService");
         const session = await getCheckoutSession(input.sessionId);
 
         return {
@@ -219,6 +223,7 @@ export const paymentRouter = router({
         }
 
         // Cancel the Stripe subscription
+        const { cancelSubscription } = await import("../stripe/stripeService");
         await cancelSubscription(subscription.stripeSubscriptionId);
 
         // Update database
@@ -258,6 +263,7 @@ export const paymentRouter = router({
         });
       }
 
+      const { createCustomerPortalSession } = await import("../stripe/stripeService");
       const portalUrl = await createCustomerPortalSession(
         subscription.stripeCustomerId,
         `${ctx.req.headers.origin}/settings/billing`
@@ -382,6 +388,7 @@ export const paymentRouter = router({
 
         if (!currentSubscription || !currentSubscription.stripeSubscriptionId) {
           // No current subscription, create new checkout session
+          const { createCheckoutSession } = await import("../stripe/stripeService");
           const result = await createCheckoutSession({
             userId: ctx.user.id,
             userEmail: ctx.user.email || "",
@@ -400,6 +407,7 @@ export const paymentRouter = router({
 
         // For now, redirect to billing portal for upgrade
         // In production, implement subscription update logic
+        const { createCustomerPortalSession } = await import("../stripe/stripeService");
         const portalUrl = await createCustomerPortalSession(
           currentSubscription.stripeCustomerId || "",
           `${ctx.req.headers.origin}/settings/billing`
