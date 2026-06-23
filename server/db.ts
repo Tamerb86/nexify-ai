@@ -1101,16 +1101,20 @@ export async function getAdminStats() {
     
     const [totalPostsResult] = await db.select({ count: sql<number>`count(*)` }).from(posts);
     
-    // Calculate monthly revenue (Pro Monthly: 199 NOK, Pro Yearly: 1910 NOK / 12 months)
+    // Calculate monthly revenue. Prices come from the single source of truth
+    // (shared/pricing.ts) so this can't drift when a plan price changes.
+    const { getPlan, yearlyPerMonthNOK } = await import("@shared/pricing");
+    const proMonthly = getPlan("PRO").monthlyNOK;
+    const proYearlyPerMonth = yearlyPerMonthNOK(proMonthly);
     const activeSubscriptions = await db
       .select()
       .from(subscriptions)
       .where(eq(subscriptions.status, "active"));
-    
+
     const monthlyRevenue = activeSubscriptions.reduce((sum, sub) => {
-      // Assume monthly if not yearly
+      // Assume monthly billing unless the Stripe subscription id marks it yearly.
       const isYearly = sub.stripeSubscriptionId?.includes("yearly") || false;
-      return sum + (isYearly ? 1910 / 12 : 199);
+      return sum + (isYearly ? proYearlyPerMonth : proMonthly);
     }, 0);
     
     // Get recent subscriptions with user info
