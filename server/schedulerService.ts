@@ -1,6 +1,6 @@
 import * as cron from 'node-cron';
 import { posts, scheduledPosts, linkedinConnections } from '../drizzle/schema';
-import { eq, and, lte } from 'drizzle-orm';
+import { eq, and, lte, lt } from 'drizzle-orm';
 import { createLinkedInPost } from './linkedinService';
 import { getDb as getDatabase, recordPostAnalytics } from './db';
 import { notifyOwner } from './_core/notification';
@@ -16,7 +16,24 @@ import { notifyOwner } from './_core/notification';
 
 let schedulerTask: cron.ScheduledTask | null = null;
 
+// In-process overlap guard: a run that exceeds the 5-min interval must not be
+// re-entered by the next tick on the same instance.
+let isProcessing = false;
+
 async function processScheduledPosts() {
+  if (isProcessing) {
+    console.log('[Scheduler] Previous run still in progress, skipping this tick');
+    return;
+  }
+  isProcessing = true;
+  try {
+    await processScheduledPostsInner();
+  } finally {
+    isProcessing = false;
+  }
+}
+
+async function processScheduledPostsInner() {
   let retries = 0;
   const maxRetries = 3;
 
@@ -29,6 +46,19 @@ async function processScheduledPosts() {
       }
 
       const now = new Date();
+
+      // Reaper: reclaim rows stuck in 'publishing' (a worker claimed them, then
+      // crashed before marking the outcome). Mark them 'failed' rather than
+      // re-queue — re-queuing risks double-posting a post that may have already
+      // gone out before the crash. The owner is alerted via the failed state.
+      const STALE_PUBLISHING_MS = 15 * 60 * 1000;
+      const staleBefore = new Date(now.getTime() - STALE_PUBLISHING_MS);
+      const reaped: any = await db
+        .update(scheduledPosts)
+        .set({ status: 'failed', failureReason: 'Stuck in publishing (worker crash) — reset by reaper' })
+        .where(and(eq(scheduledPosts.status, 'publishing'), lt(scheduledPosts.updatedAt, staleBefore)));
+      const reapedCount = reaped?.[0]?.affectedRows ?? reaped?.affectedRows ?? 0;
+      if (reapedCount > 0) console.warn(`[Scheduler] Reaped ${reapedCount} stale 'publishing' row(s)`);
 
       // Due scheduled entries (LinkedIn auto-posting is the only supported channel).
       const due = await db
@@ -51,6 +81,20 @@ async function processScheduledPosts() {
 
       for (const sched of due) {
         try {
+          // Atomically CLAIM this row before doing any work. Only the worker whose
+          // UPDATE flips 'scheduled' → 'publishing' (affectedRows === 1) proceeds;
+          // any other instance/overlapping run that lost the race skips it. This is
+          // what prevents the same post being published twice across instances.
+          const claim: any = await db
+            .update(scheduledPosts)
+            .set({ status: 'publishing' })
+            .where(and(eq(scheduledPosts.id, sched.id), eq(scheduledPosts.status, 'scheduled')));
+          const claimed = claim?.[0]?.affectedRows ?? claim?.affectedRows ?? 0;
+          if (claimed !== 1) {
+            console.log(`[Scheduler] Scheduled post ${sched.id} already claimed elsewhere, skipping`);
+            continue;
+          }
+
           const [post] = await db.select().from(posts).where(eq(posts.id, sched.postId)).limit(1);
           if (!post) throw new Error(`Post ${sched.postId} not found for scheduled entry ${sched.id}`);
 

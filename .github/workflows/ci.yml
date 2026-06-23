@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cancel superseded runs on the same ref.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Gate 1 — types (tsconfig includes *.test.ts).
+      - name: Typecheck
+        run: pnpm check
+
+      # Gate 2 — logic. test-setup forces DATABASE_URL="" for hermetic runs.
+      - name: Test
+        run: pnpm test
+
+      # Gate 3 — the production bundle actually builds.
+      - name: Build
+        run: pnpm build
+
+      # Gate 4 — the bundled server actually BOOTS and serves /health.
+      # CLAUDE.md warns gates 1–3 can all be green while dist/index.js crashes on
+      # boot (a transitive dep mismatch did exactly that). Dummy prod env satisfies
+      # validateEnv; /health is liveness-only so it needs no real DB.
+      - name: Boot smoke test
+        env:
+          NODE_ENV: production
+          PORT: "5000"
+          DATABASE_URL: "mysql://user:pass@127.0.0.1:3306/db"
+          JWT_SECRET: "ci_dummy_jwt_secret_at_least_32_characters_long"
+          TOKEN_ENCRYPTION_KEY: "ci_dummy_token_encryption_key_value"
+          OPENAI_API_KEY: "sk-ci-dummy"
+          STRIPE_SECRET_KEY: "sk_test_ci_dummy"
+          STRIPE_WEBHOOK_SECRET: "whsec_ci_dummy"
+          PUBLIC_SITE_URL: "http://localhost:5000"
+        run: |
+          node dist/index.js &
+          APP_PID=$!
+          ok=0
+          for i in $(seq 1 30); do
+            if curl -fsS "http://127.0.0.1:5000/health" >/dev/null 2>&1; then ok=1; break; fi
+            sleep 1
+          done
+          kill $APP_PID 2>/dev/null || true
+          if [ "$ok" != "1" ]; then echo "::error::server did not become healthy"; exit 1; fi
+          echo "Boot smoke passed: /health responded."

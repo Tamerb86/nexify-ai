@@ -1,5 +1,5 @@
 // Extracted from server/routers.ts (app-layer feature router).
-import { protectedProcedure, router } from "../_core/trpc";
+import { protectedProcedure, aiProcedure, router } from "../_core/trpc";
 import { z } from "zod";
 
 // Shared shape for the expanded content-generation "properties". Reused by the
@@ -108,7 +108,7 @@ export const contentRouter = router({
     // Prompt-engineering layer: rewrite a plain idea into a sharper, professional
     // content brief BEFORE generation. Returns the enhanced text for preview/edit;
     // does not consume post quota.
-    enhanceIdea: protectedProcedure
+    enhanceIdea: aiProcedure
       .input(z.object(contentOptionsShape))
       .mutation(async ({ input }) => {
         const { enhanceIdea } = await import("../promptBuilder");
@@ -116,7 +116,7 @@ export const contentRouter = router({
         return { enhanced };
       }),
 
-    improve: protectedProcedure
+    improve: aiProcedure
       .input(z.object({
         content: z.string().min(1),
         platform: z.enum(["linkedin", "twitter", "instagram", "facebook"]),
@@ -134,7 +134,7 @@ export const contentRouter = router({
         return { content: improvedContent };
       }),
       
-    generateImageDallE: protectedProcedure
+    generateImageDallE: aiProcedure
       .input(z.object({
         topic: z.string().min(1),
         platform: z.enum(["linkedin", "twitter", "instagram", "facebook"]),
@@ -169,7 +169,7 @@ export const contentRouter = router({
         };
       }),
       
-    generateImageNanoBanana: protectedProcedure
+    generateImageNanoBanana: aiProcedure
       .input(z.object({
         topic: z.string().min(1),
         platform: z.enum(["linkedin", "twitter", "instagram", "facebook"]),

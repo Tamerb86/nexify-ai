@@ -1,17 +1,21 @@
-import { router, protectedProcedure } from "./_core/trpc";
+import { router, aiProcedure } from "./_core/trpc";
 import { z } from "zod";
-import { langchainService } from "./langchain/service";
 
 /**
  * LangChain tRPC Router
- * Exposes LangChain functionality to the frontend
+ * Exposes LangChain functionality to the frontend.
+ *
+ * NOTE: langchain/service is imported LAZILY inside each procedure (not at module
+ * scope). It constructs a ChatOpenAI/LangChain instance on load, which is a heavy
+ * part of cold-start; deferring it keeps it off the server boot path (appRouter is
+ * imported eagerly at startup) so it's only paid on the first LangChain request.
  */
 
 export const langchainRouter = router({
   /**
    * Generate content with voice profile
    */
-  generateWithVoice: protectedProcedure
+  generateWithVoice: aiProcedure
     .input(
       z.object({
         platform: z.enum(["linkedin", "twitter", "facebook", "instagram"]),
@@ -28,6 +32,7 @@ export const langchainRouter = router({
     )
     .mutation(async ({ input }: { input: any }) => {
       try {
+        const { langchainService } = await import("./langchain/service");
         const content = await langchainService.generateContentWithVoice({
           platform: input.platform,
           topic: input.topic,
@@ -55,7 +60,7 @@ export const langchainRouter = router({
   /**
    * Analyze content quality and engagement potential
    */
-  analyzeContent: protectedProcedure
+  analyzeContent: aiProcedure
     .input(
       z.object({
         content: z.string().min(10).max(5000),
@@ -65,6 +70,7 @@ export const langchainRouter = router({
     )
     .query(async ({ input }: { input: any }) => {
       try {
+        const { langchainService } = await import("./langchain/service");
         const analysis = await langchainService.analyzeContent({
           content: input.content,
           platform: input.platform,
@@ -85,7 +91,7 @@ export const langchainRouter = router({
   /**
    * AI Coach conversation
    */
-  coachChat: protectedProcedure
+  coachChat: aiProcedure
     .input(
       z.object({
         userMessage: z.string().min(1).max(2000),
@@ -101,6 +107,7 @@ export const langchainRouter = router({
     )
     .mutation(async ({ input }: { input: any }) => {
       try {
+        const { langchainService } = await import("./langchain/service");
         const response = await langchainService.coachConversation({
           userMessage: input.userMessage,
           conversationHistory: input.conversationHistory
@@ -120,7 +127,7 @@ export const langchainRouter = router({
   /**
    * Analyze trends and get content ideas
    */
-  analyzeTrends: protectedProcedure
+  analyzeTrends: aiProcedure
     .input(
       z.object({
         trends: z.string().min(10),
@@ -133,6 +140,7 @@ export const langchainRouter = router({
     )
     .query(async ({ input }: { input: any }) => {
       try {
+        const { langchainService } = await import("./langchain/service");
         const ideas = await langchainService.analyzeTrends({
           trends: input.trends,
           platform: input.platform,
@@ -156,7 +164,7 @@ export const langchainRouter = router({
   /**
    * Improve existing content
    */
-  improveContent: protectedProcedure
+  improveContent: aiProcedure
     .input(
       z.object({
         originalContent: z.string().min(10).max(5000),
@@ -171,6 +179,7 @@ export const langchainRouter = router({
     )
     .mutation(async ({ input }: { input: any }) => {
       try {
+        const { langchainService } = await import("./langchain/service");
         const improvedContent = await langchainService.improveContent({
           originalContent: input.originalContent,
           platform: input.platform,
@@ -196,7 +205,7 @@ export const langchainRouter = router({
   /**
    * Generate hashtags
    */
-  generateHashtags: protectedProcedure
+  generateHashtags: aiProcedure
     .input(
       z.object({
         content: z.string().min(10).max(5000),
@@ -208,6 +217,7 @@ export const langchainRouter = router({
     )
     .query(async ({ input }: { input: any }) => {
       try {
+        const { langchainService } = await import("./langchain/service");
         const hashtags = await langchainService.generateHashtags({
           content: input.content,
           platform: input.platform,
@@ -230,7 +240,7 @@ export const langchainRouter = router({
   /**
    * Create content series
    */
-  createContentSeries: protectedProcedure
+  createContentSeries: aiProcedure
     .input(
       z.object({
         topic: z.string().min(5).max(500),
@@ -242,6 +252,7 @@ export const langchainRouter = router({
     )
     .mutation(async ({ input }: { input: any }) => {
       try {
+        const { langchainService } = await import("./langchain/service");
         const series = await langchainService.createContentSeries({
           topic: input.topic,
           numberOfPosts: input.numberOfPosts,

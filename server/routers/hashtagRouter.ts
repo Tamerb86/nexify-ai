@@ -1,8 +1,8 @@
-import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
+import { protectedProcedure, publicProcedure, aiProcedure, router } from "../_core/trpc";
 import { z } from "zod";
 
 export const hashtagRouter = router({
-  generateSuggestions: protectedProcedure
+  generateSuggestions: aiProcedure
     .input(z.object({
       contentTitle: z.string(),
       contentExcerpt: z.string(),

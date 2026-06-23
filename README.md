@@ -229,6 +229,11 @@ VITE_SITE_URL=http://localhost:5000
 # Optional: Error Tracking
 SENTRY_DSN=https://your-sentry-dsn@sentry.io/project-id
 
+# Optional: AI models (defaults to gpt-4o-mini) & image provider (defaults to OpenAI/DALL·E)
+CONTENT_MODEL=gpt-4o-mini
+LLM_MODEL=gpt-4o-mini
+IMAGE_PROVIDER=openai            # or "fal" (fal.ai FLUX) — then set IMAGE_MODEL + FAL_API_KEY
+
 # Optional: Telegram Bot (if using Telegram integration)
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token
 
@@ -247,6 +252,8 @@ TELEGRAM_BOT_TOKEN=your_telegram_bot_token
 | `STRIPE_SECRET_KEY` | ✅ | Stripe secret key for payments |
 | `GOOGLE_CLIENT_ID` | ❌ | Google OAuth client ID (optional) |
 | `SENTRY_DSN` | ⚠️ | Sentry DSN for error tracking (recommended) |
+| `CONTENT_MODEL` / `LLM_MODEL` | ❌ | Text models — quality tier / light tier (default `gpt-4o-mini`) |
+| `IMAGE_PROVIDER` / `IMAGE_MODEL` / `FAL_API_KEY` | ❌ | Image provider: `openai` (DALL·E) or `fal` (FLUX) |
 | `TELEGRAM_BOT_TOKEN` | ❌ | Telegram bot token (optional) |
 
 ### Getting API Keys
@@ -292,15 +299,21 @@ EXIT;
 ### Running Migrations
 
 ```bash
-# Generate and apply all migrations
-pnpm db:push
+# 1) Generate a migration from schema.ts changes (offline)
+pnpm db:generate          # drizzle-kit generate
 
-# View migration status
-pnpm db:status
+# 2) Apply pending migrations (needs DATABASE_URL) — use this in prod/CI, as a
+#    separate step (NEVER at app boot)
+pnpm db:migrate           # drizzle-kit migrate
 
-# Rollback last migration (if needed)
-pnpm db:rollback
+# Dev-only: push schema.ts straight to a local DB (skips migration history)
+pnpm db:push              # drizzle-kit push — DO NOT use in production
 ```
+
+> In Docker, migrations run via a dedicated one-shot `migrate` service; the app
+> container only runs `node dist/index.js` and never alters the schema on start.
+> Switching an existing push-built DB to `migrate` requires a one-time baseline
+> (see `docs/PRODUCTION_READINESS_BACKLOG.md`).
 
 ### Database Schema
 
@@ -544,23 +557,18 @@ Then open http://localhost:5000. See `docker-compose.yml` for the local environm
 
 #### Option 2: Docker
 
-1. Create `Dockerfile`:
-   ```dockerfile
-   FROM node:22-alpine
-   WORKDIR /app
-   COPY package.json pnpm-lock.yaml ./
-   RUN npm install -g pnpm && pnpm install
-   COPY . .
-   RUN pnpm build
-   EXPOSE 3000
-   CMD ["pnpm", "start"]
-   ```
+The repo ships a production `Dockerfile` — **multi-stage** (builder → migrator →
+slim **non-root** runtime, prod deps only), with a `/health` `HEALTHCHECK`. The
+runtime CMD is `node dist/index.js` only; **migrations run separately** (the
+`migrator` stage / compose `migrate` service), never at boot.
 
-2. Build and run:
-   ```bash
-   docker build -t innlegg .
-   docker run -p 3000:3000 innlegg
-   ```
+```bash
+# Build the runtime image and run migrations as a one-shot job, then start the app
+docker build --target runtime -t innlegg .
+docker build --target migrator -t innlegg-migrate .
+docker run --rm -e DATABASE_URL=... innlegg-migrate     # apply migrations once
+docker run -p 5000:5000 --env-file .env innlegg          # start the app (non-root)
+```
 
 #### Option 3: Traditional Server
 
@@ -586,10 +594,12 @@ Then open http://localhost:5000. See `docker-compose.yml` for the local environm
 - [ ] All tests passing (100%)
 - [ ] Environment variables configured
 - [ ] Database backups created
-- [ ] SSL/TLS certificates ready
-- [ ] Rate limiting configured
-- [ ] Monitoring enabled (Sentry)
-- [ ] Error logging configured
+- [ ] Migrations applied as a **separate step** (`pnpm db:migrate`), not at app boot — existing push-built DB baselined first
+- [ ] SSL/TLS certificates ready (app forces Secure cookies + HTTPS in prod)
+- [ ] Rate limiting configured (`REDIS_URL` set — in-memory is ineffective on serverless)
+- [ ] Monitoring enabled — `SENTRY_DSN` set (Sentry no-ops without it)
+- [ ] `ENABLE_DEV_LOGIN` unset on the public deploy (auto-refused on prod HTTPS)
+- [ ] Graceful shutdown verified (SIGTERM drains in-flight requests)
 - [ ] Health checks passing
 - [ ] Performance metrics acceptable
 - [ ] Security audit completed

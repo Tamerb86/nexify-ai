@@ -1,4 +1,4 @@
-import { desc, eq, and, count, gte, lte } from "drizzle-orm";
+import { desc, eq, and, count, gte, lte, lt, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import * as schema from "../drizzle/schema";
 import { sanitizeHtml } from "./_core/sanitizeHtml";
@@ -178,14 +178,16 @@ export async function enforcePostQuota(userId: number): Promise<void> {
   const [sub] = await db.select().from(subscriptions).where(eq(subscriptions.userId, userId)).limit(1);
   if (!sub) throw new Error("No subscription found");
 
-  // Trial: cumulative total cap.
+  // Trial: cumulative total cap. Increment ATOMICALLY with a conditional update
+  // so concurrent requests can't all read the same count and race past the cap.
   if (sub.status === "trial") {
-    if (sub.postsGenerated >= sub.trialPostsLimit) {
+    const res: any = await db.update(subscriptions)
+      .set({ postsGenerated: sql`${subscriptions.postsGenerated} + 1`, updatedAt: new Date() })
+      .where(and(eq(subscriptions.id, sub.id), lt(subscriptions.postsGenerated, subscriptions.trialPostsLimit)));
+    const affected = res?.[0]?.affectedRows ?? res?.affectedRows ?? 0;
+    if (affected === 0) {
       throw new Error("Trial limit reached. Please upgrade to continue.");
     }
-    await db.update(subscriptions)
-      .set({ postsGenerated: sub.postsGenerated + 1, updatedAt: new Date() })
-      .where(eq(subscriptions.id, sub.id));
     return;
   }
 
@@ -225,7 +227,14 @@ export async function enforcePostQuota(userId: number): Promise<void> {
   }
 
   if (usage) {
-    await db.update(userUsageTracking).set({ postsUsed: used + 1 }).where(eq(userUsageTracking.id, usage.id));
+    // Atomic conditional increment — race-safe against the cap (see trial path).
+    const res: any = await db.update(userUsageTracking)
+      .set({ postsUsed: sql`${userUsageTracking.postsUsed} + 1` })
+      .where(and(eq(userUsageTracking.id, usage.id), lt(userUsageTracking.postsUsed, plan.postsPerMonth)));
+    const affected = res?.[0]?.affectedRows ?? res?.affectedRows ?? 0;
+    if (affected === 0) {
+      throw new Error("Monthly post limit reached. Please upgrade your plan.");
+    }
   } else {
     await db.insert(userUsageTracking).values({
       userId,
@@ -589,14 +598,6 @@ export async function saveContentAnalysis(analysis: InsertContentAnalysis): Prom
   const [result] = await db.insert(contentAnalysis).values(analysis).$returningId();
   const [newAnalysis] = await db.select().from(contentAnalysis).where(eq(contentAnalysis.id, result.id));
   return newAnalysis!;
-}
-
-export async function getContentAnalysisByPostId(postId: number): Promise<ContentAnalysis | undefined> {
-  const db = await getDb();
-  if (!db) return undefined;
-
-  const [analysis] = await db.select().from(contentAnalysis).where(eq(contentAnalysis.postId, postId)).limit(1);
-  return analysis;
 }
 
 export async function getUserAnalysisHistory(userId: number, limit: number = 30): Promise<ContentAnalysis[]> {
@@ -1100,16 +1101,20 @@ export async function getAdminStats() {
     
     const [totalPostsResult] = await db.select({ count: sql<number>`count(*)` }).from(posts);
     
-    // Calculate monthly revenue (Pro Monthly: 199 NOK, Pro Yearly: 1910 NOK / 12 months)
+    // Calculate monthly revenue. Prices come from the single source of truth
+    // (shared/pricing.ts) so this can't drift when a plan price changes.
+    const { getPlan, yearlyPerMonthNOK } = await import("@shared/pricing");
+    const proMonthly = getPlan("PRO").monthlyNOK;
+    const proYearlyPerMonth = yearlyPerMonthNOK(proMonthly);
     const activeSubscriptions = await db
       .select()
       .from(subscriptions)
       .where(eq(subscriptions.status, "active"));
-    
+
     const monthlyRevenue = activeSubscriptions.reduce((sum, sub) => {
-      // Assume monthly if not yearly
+      // Assume monthly billing unless the Stripe subscription id marks it yearly.
       const isYearly = sub.stripeSubscriptionId?.includes("yearly") || false;
-      return sum + (isYearly ? 1910 / 12 : 199);
+      return sum + (isYearly ? proYearlyPerMonth : proMonthly);
     }, 0);
     
     // Get recent subscriptions with user info
@@ -1421,17 +1426,6 @@ export async function getHashtagSuggestions(userId: number, limit: number = 10):
     .where(eq(hashtagSuggestions.userId, userId))
     .orderBy(desc(hashtagSuggestions.createdAt))
     .limit(limit);
-}
-
-export async function getHashtagSuggestionByPostId(postId: number): Promise<HashtagSuggestion | undefined> {
-  const db = await getDb();
-  if (!db) return undefined;
-  
-  const [suggestion] = await db.select()
-    .from(hashtagSuggestions)
-    .where(eq(hashtagSuggestions.postId, postId))
-    .limit(1);
-  return suggestion;
 }
 
 // ============ Hashtag Performance Queries ============

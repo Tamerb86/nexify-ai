@@ -5,11 +5,62 @@
  */
 
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
+import crypto from "crypto";
 import type { Express, Request, Response } from "express";
 import { OAuth2Client } from "google-auth-library";
 import * as db from "../db";
 import { getSessionCookieOptions } from "../_core/cookies";
 import { sdk } from "../_core/sdk";
+
+// CSRF/PKCE protection for the LOGIN flow. We mint a random `state` and a PKCE
+// `code_verifier`, stash both in short-lived httpOnly cookies, and send `state` +
+// the S256 challenge to Google. On callback we require the returned `state` to
+// match the cookie (constant-time) before trusting the code, and exchange it with
+// the verifier — so a forged/replayed callback (login CSRF / fixation) is rejected.
+const STATE_COOKIE = "g_oauth_state";
+const VERIFIER_COOKIE = "g_oauth_verifier";
+const OAUTH_TX_MAX_AGE_MS = 10 * 60 * 1000;
+
+const GOOGLE_SCOPES = [
+  "https://www.googleapis.com/auth/userinfo.email",
+  "https://www.googleapis.com/auth/userinfo.profile",
+];
+
+function timingSafeEqualStr(a: string, b: string): boolean {
+  const ab = Buffer.from(a, "utf8");
+  const bb = Buffer.from(b, "utf8");
+  return ab.length === bb.length && crypto.timingSafeEqual(ab, bb);
+}
+
+/**
+ * Build the Google auth URL and set the transient state + PKCE-verifier cookies on
+ * `res`. Used by both the redirect and the JSON login entry points.
+ */
+function beginGoogleAuth(req: Request, res: Response): string {
+  const redirectUri = getGoogleRedirectUri(req);
+  const googleClient = new OAuth2Client(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    redirectUri
+  );
+
+  const state = crypto.randomBytes(16).toString("hex");
+  const codeVerifier = crypto.randomBytes(32).toString("base64url");
+  const codeChallenge = crypto.createHash("sha256").update(codeVerifier).digest("base64url");
+
+  const cookieBase = { ...getSessionCookieOptions(req), maxAge: OAUTH_TX_MAX_AGE_MS };
+  res.cookie(STATE_COOKIE, state, cookieBase);
+  res.cookie(VERIFIER_COOKIE, codeVerifier, cookieBase);
+
+  return googleClient.generateAuthUrl({
+    access_type: "offline",
+    scope: GOOGLE_SCOPES,
+    prompt: "consent",
+    state,
+    code_challenge_method: "S256" as any,
+    code_challenge: codeChallenge,
+  });
+}
 
 function getGoogleRedirectUri(req: Request): string {
   // Vercel production URL
@@ -36,23 +87,7 @@ export function registerGoogleOAuthRoutes(app: Express) {
    */
   app.get("/api/auth/login/google", (req: Request, res: Response) => {
     try {
-      const redirectUri = getGoogleRedirectUri(req);
-      const googleClient = new OAuth2Client(
-        process.env.GOOGLE_CLIENT_ID,
-        process.env.GOOGLE_CLIENT_SECRET,
-        redirectUri
-      );
-
-      const authUrl = googleClient.generateAuthUrl({
-        access_type: "offline",
-        scope: [
-          "https://www.googleapis.com/auth/userinfo.email",
-          "https://www.googleapis.com/auth/userinfo.profile",
-        ],
-        prompt: "consent",
-      });
-
-      res.redirect(302, authUrl);
+      res.redirect(302, beginGoogleAuth(req, res));
     } catch (error) {
       console.error("[Google OAuth] Failed to generate auth URL:", error);
       res.redirect(302, "/login?error=auth_failed");
@@ -65,23 +100,7 @@ export function registerGoogleOAuthRoutes(app: Express) {
    */
   app.get("/api/auth/login", (req: Request, res: Response) => {
     try {
-      const redirectUri = getGoogleRedirectUri(req);
-      const googleClient = new OAuth2Client(
-        process.env.GOOGLE_CLIENT_ID,
-        process.env.GOOGLE_CLIENT_SECRET,
-        redirectUri
-      );
-
-      const authUrl = googleClient.generateAuthUrl({
-        access_type: "offline",
-        scope: [
-          "https://www.googleapis.com/auth/userinfo.email",
-          "https://www.googleapis.com/auth/userinfo.profile",
-        ],
-        prompt: "consent",
-      });
-
-      res.json({ url: authUrl });
+      res.json({ url: beginGoogleAuth(req, res) });
     } catch (error) {
       console.error("[Google OAuth] Failed to generate auth URL:", error);
       res.status(500).json({ error: "Failed to generate login URL" });
@@ -95,10 +114,24 @@ export function registerGoogleOAuthRoutes(app: Express) {
   app.get("/api/auth/callback/google", async (req: Request, res: Response) => {
     const code = req.query.code as string | undefined;
     const error = req.query.error as string | undefined;
+    const returnedState = req.query.state as string | undefined;
+
+    // Read + immediately clear the single-use transaction cookies.
+    const stateCookie = req.cookies?.[STATE_COOKIE] as string | undefined;
+    const codeVerifier = req.cookies?.[VERIFIER_COOKIE] as string | undefined;
+    res.clearCookie(STATE_COOKIE, { path: "/" });
+    res.clearCookie(VERIFIER_COOKIE, { path: "/" });
 
     if (error || !code) {
       console.error("[Google OAuth] Callback error:", error || "Missing code");
       return res.redirect(302, "/login?error=auth_failed");
+    }
+
+    // CSRF guard: the state returned by Google must match the one we set before
+    // the redirect. A missing/mismatched state means a forged or replayed callback.
+    if (!returnedState || !stateCookie || !timingSafeEqualStr(returnedState, stateCookie)) {
+      console.error("[Google OAuth] state mismatch — rejecting (possible login CSRF)");
+      return res.redirect(302, "/login?error=state_mismatch");
     }
 
     try {
@@ -109,8 +142,9 @@ export function registerGoogleOAuthRoutes(app: Express) {
         redirectUri
       );
 
-      // Exchange code for tokens
-      const { tokens } = await googleClient.getToken(code);
+      // Exchange code for tokens, binding the PKCE verifier (codeVerifier is
+      // optional on GetTokenOptions, so undefined is fine if it wasn't set).
+      const { tokens } = await googleClient.getToken({ code, codeVerifier });
 
       if (!tokens.id_token) {
         throw new Error("No id_token received from Google");

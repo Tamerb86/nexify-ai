@@ -5,6 +5,17 @@ import type { TrpcContext } from "./context";
 
 const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
+  // Never leak internal error messages or stack traces to clients in production.
+  // Validation (BAD_REQUEST) and explicit auth errors keep their messages; any
+  // unexpected throw (DB errors, etc.) is redacted to a generic message.
+  errorFormatter({ shape, error }) {
+    const isProd = process.env.NODE_ENV === "production";
+    const data = { ...shape.data, stack: isProd ? undefined : shape.data?.stack };
+    if (isProd && error.code === "INTERNAL_SERVER_ERROR") {
+      return { ...shape, message: "Internal server error", data };
+    }
+    return { ...shape, data };
+  },
 });
 
 export const router = t.router;
@@ -26,6 +37,14 @@ const requireUser = t.middleware(async opts => {
 });
 
 export const protectedProcedure = t.procedure.use(requireUser);
+
+// Use for paid AI endpoints (LLM / image generation). Same as protectedProcedure
+// plus a per-user rate-limit backstop against runaway OpenAI cost / abuse.
+export const aiProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+  const { enforceAiRateLimit } = await import("./aiRateLimit");
+  await enforceAiRateLimit(ctx.user.id);
+  return next();
+});
 
 export const adminProcedure = t.procedure.use(
   t.middleware(async opts => {

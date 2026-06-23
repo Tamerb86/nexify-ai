@@ -1,4 +1,7 @@
 import "dotenv/config"; // load .env before anything reads process.env (no-op in prod if absent)
+import "./instrument"; // initialise Sentry BEFORE express/other modules load (v8+ requirement)
+import * as Sentry from "@sentry/node";
+import { captureException } from "./sentry";
 import express from "express";
 import { createServer } from "http";
 import net from "net";
@@ -10,7 +13,7 @@ import { registerLinkedInCallback } from "./linkedinCallback";
 import { registerGoogleOAuthRoutes } from "../routes/googleOAuthRoutes";
 import { registerMonitoringRoutes } from "../routes/monitoringRoutes";
 import { appRouter } from "../routers";
-import { startScheduler } from "../schedulerService";
+import { startScheduler, stopScheduler } from "../schedulerService";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import sitemapRoutes from "../routes/sitemapRoutes";
@@ -162,9 +165,18 @@ async function startServer() {
   
   // Demo/dev login — gated behind an explicit opt-in flag (ENABLE_DEV_LOGIN).
   // Signs you in without OAuth. Accepts GET so it can be opened in a browser.
-  if (process.env.ENABLE_DEV_LOGIN === "true") {
+  // HARD SAFETY: refuse to mount on a real production deploy (HTTPS). It is only
+  // permitted in the explicit local/demo plain-HTTP mode (DISABLE_HTTPS_REDIRECT=true),
+  // so a stray ENABLE_DEV_LOGIN can never open a no-auth admin door on a public host.
+  const devLoginAllowed =
+    process.env.ENABLE_DEV_LOGIN === "true" &&
+    (process.env.NODE_ENV !== "production" || process.env.DISABLE_HTTPS_REDIRECT === "true");
+  if (process.env.ENABLE_DEV_LOGIN === "true" && !devLoginAllowed) {
+    console.error("[SECURITY] Refusing to mount dev-login: ENABLE_DEV_LOGIN=true on a production HTTPS deploy. Unset it or use DISABLE_HTTPS_REDIRECT=true for a local/demo run.");
+  }
+  if (devLoginAllowed) {
     if (process.env.NODE_ENV === "production") {
-      console.warn("[SECURITY] dev-login is ENABLED in production (ENABLE_DEV_LOGIN=true) — local/demo only; NEVER enable on a public deployment.");
+      console.warn("[SECURITY] dev-login ENABLED (production + plain-HTTP demo) — NEVER expose this on a public deployment.");
     }
     app.all("/api/auth/dev-login", async (req, res) => {
       try {
@@ -351,7 +363,11 @@ async function startServer() {
 
       res.json({ received: true });
     } catch (error) {
+      // Signature-verification failures are expected noise; a thrown Error after
+      // a verified event (e.g. a DB write failing) is a real incident Stripe will
+      // retry — surface it to Sentry so the retry isn't silently invisible.
       console.error("[Stripe Webhook] Error:", error);
+      captureException(error instanceof Error ? error : new Error(String(error)), { scope: "stripe-webhook" });
       res.status(400).json({ error: "Webhook error" });
     }
   });
@@ -378,11 +394,15 @@ async function startServer() {
     serveStatic(app);
   }
 
+  // Report unhandled errors from routes/tRPC/webhooks to Sentry (no-op without DSN).
+  Sentry.setupExpressErrorHandler(app);
+
   // Error-handling middleware — MUST be registered last so it actually catches
   // errors from the routes/tRPC/webhooks above. Fails closed and never leaks
   // internals to clients.
   app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     console.error("[Server Error]", err?.message || err);
+    captureException(err instanceof Error ? err : new Error(String(err?.message || err)));
     if (res.headersSent) return;
     res.status(err?.status || 500).json({ error: "Internal Server Error" });
   });
@@ -396,14 +416,73 @@ async function startServer() {
     console.warn("[Plans] could not seed subscription_plans:", (e as Error)?.message);
   }
 
-  // Start scheduler
-  startScheduler();
+  // Start the auto-publish scheduler — but ONLY where it's meant to run.
+  // It is an in-process node-cron loop, so it must run on exactly ONE instance:
+  //  - single long-lived container (recommended): leave RUN_SCHEDULER unset/"true".
+  //  - horizontally scaled / serverless: set RUN_SCHEDULER=false on web instances
+  //    and run a single dedicated worker (or an external cron) with it "true".
+  // Running it on every instance would multiply cron loops (the per-row claim
+  // prevents double-publish, but that's a safety net, not the intended topology).
+  if (process.env.RUN_SCHEDULER !== "false") {
+    startScheduler();
+  } else {
+    console.log("[Scheduler] Disabled on this instance (RUN_SCHEDULER=false)");
+  }
 
   const port = await findAvailablePort(process.env.PORT ? parseInt(process.env.PORT, 10) : 3000);
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
   });
+
+  // Graceful shutdown: on deploy/scale-down the platform sends SIGTERM. Stop the
+  // scheduler, drain in-flight HTTP requests (so webhooks/payments aren't severed),
+  // close Redis, then exit. A hard timeout guards against a stuck connection.
+  let shuttingDown = false;
+  const shutdown = async (signal: string) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.log(`[shutdown] ${signal} received — draining...`);
+    const forceExit = setTimeout(() => {
+      console.error("[shutdown] drain timed out, forcing exit");
+      process.exit(1);
+    }, 10_000);
+    forceExit.unref();
+    try {
+      stopScheduler();
+    } catch (e) {
+      console.error("[shutdown] stopScheduler failed:", (e as Error)?.message);
+    }
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+    try {
+      const { getRedis } = await import("./redis");
+      const redis = getRedis();
+      if (redis) await redis.quit();
+    } catch (e) {
+      console.error("[shutdown] redis quit failed:", (e as Error)?.message);
+    }
+    clearTimeout(forceExit);
+    console.log("[shutdown] complete");
+    process.exit(0);
+  };
+  process.on("SIGTERM", () => void shutdown("SIGTERM"));
+  process.on("SIGINT", () => void shutdown("SIGINT"));
 }
 
-startServer().catch(console.error);
+// Last-resort handlers so a stray rejection in the scheduler/a webhook is
+// reported instead of vanishing (or crashing the process unreported).
+process.on("unhandledRejection", (reason) => {
+  console.error("[unhandledRejection]", reason);
+  captureException(reason instanceof Error ? reason : new Error(String(reason)), { kind: "unhandledRejection" });
+});
+process.on("uncaughtException", (err) => {
+  console.error("[uncaughtException]", err);
+  captureException(err, { kind: "uncaughtException" });
+});
+
+// A fatal boot error must crash the process (so the orchestrator restarts/flags
+// it) rather than leaving a half-initialised server limping.
+startServer().catch((err) => {
+  console.error("[boot] fatal startup error:", err);
+  process.exit(1);
+});

@@ -3,6 +3,71 @@
 
 ---
 
+## Session 3 — 2026-06-23 (production-readiness & hardening pass)
+
+Senior-engineer deep-dive on branch `fix/drizzle-migration-history`. Every change
+is committed separately by category and verified: `pnpm check` clean, **287 tests
+pass** (2 skipped), `pnpm build` OK, and a **live boot smoke** (`node dist/index.js`
+→ `/health` 200, graceful shutdown confirmed). See `docs/PRODUCTION_READINESS_BACKLOG.md`
+for the items intentionally deferred.
+
+### Migration strategy (was the #1 risk)
+- **No more schema changes at app boot.** The Dockerfile no longer runs
+  `drizzle-kit push --force` on start — runtime CMD is `node dist/index.js` only,
+  so a restart can't alter the DB. Migrations run as a **separate one-shot
+  `migrate` service** (`drizzle-kit migrate`); the app waits for it via
+  `service_completed_successfully`. New scripts: `db:generate`, `db:migrate`,
+  `db:push` (dev-only). History is consistent (no duplicate `CREATE TABLE`).
+
+### Docker / deploy
+- **Multi-stage image:** builder → migrator → slim **non-root** runtime (prod deps
+  only, no drizzle-kit), with a real `HEALTHCHECK` hitting `/health`.
+
+### Security & runtime hardening
+- **Graceful shutdown:** SIGTERM/SIGINT drains in-flight requests (`server.close`),
+  stops the scheduler, quits Redis, then exits (10 s force-guard); fatal boot → `exit(1)`.
+- **tRPC error redaction** in production (no stack/internal message leaks).
+- **Secure cookies forced** in prod; **dev-login hard-refused** on a real HTTPS prod deploy.
+
+### Observability
+- **Sentry actually wired** (was configured but `initSentry()` was never called):
+  early init via `instrument.ts`, `setupExpressErrorHandler`, Stripe-webhook capture,
+  and `unhandledRejection`/`uncaughtException` handlers.
+
+### Multi-tenant safety
+- **Atomic quota** increment (race-safe conditional update) — was read-then-update.
+- **Scheduler no longer double-publishes:** atomic per-row claim
+  (`scheduled→publishing`) + in-process overlap guard + a reaper for rows stuck in
+  `publishing` after a crash.
+- **IDOR fixed:** `schedulePost` verifies post ownership (+ regression test).
+
+### CI & performance
+- **CI pipeline added** (`.github/workflows/ci.yml`): typecheck / test / build /
+  **boot-smoke** — fails the PR on any broken gate.
+- **Cold start cut:** LangChain and Stripe SDKs are now **lazy-loaded** off the boot
+  path (they were imported eagerly via `appRouter`).
+- Admin revenue derived from `shared/pricing.ts`; dead code removed.
+
+### Follow-up hardening (same branch, 2026-06-23)
+- **Scheduler deployment safety:** the in-process cron is now gated behind
+  `RUN_SCHEDULER` — run it on exactly one instance (`false` on web instances when
+  scaling) so it doesn't multiply or silently fail on serverless.
+- **AI cost backstop:** new `aiProcedure` (per-user rate limit,
+  `AI_RATE_PER_MINUTE`/`AI_RATE_PER_DAY`, Redis-or-memory) on every previously
+  unmetered paid LLM/image endpoint — caps runaway OpenAI cost/abuse. (Per-plan AI
+  quota remains a product decision — see backlog §1.)
+- **OAuth login CSRF fixed:** the Google login flow now uses `state` + PKCE
+  (short-lived httpOnly cookies; constant-time verify on callback). Needs a live
+  end-to-end login test before merge.
+
+### Also (from the prior expanded-options work on this branch)
+- Expanded generation options + named **presets** (`generation_presets`, migration
+  `0027`), a structured **prompt-builder** layer + LLM "enhance idea", Norwegian
+  output hardening, and env-driven model/provider config (`CONTENT_MODEL`,
+  `LLM_MODEL`, `IMAGE_PROVIDER`/`IMAGE_MODEL`/`FAL_API_KEY`).
+
+---
+
 ## Session 2 — 2026-06-22 (runtime bug-fix pass)
 
 The first report verified the bundle *boots*. This pass **ran the real app end-to-end**
@@ -109,14 +174,14 @@ Both stay patched. **Lesson: override values must be pinned, not `>=`.**
 
 ## 5. Known residual (non-blocking)
 - 2 high `lodash` advisories — no upstream fix (documented).
-- Cold-start ~12–16 s (heavy `import("./routers")`) — fine for a long-running server; consider lazy-loading for serverless.
+- Cold-start: the heaviest SDKs (LangChain, Stripe) are now lazy-loaded off the boot path (Session 3); remaining boot cost is the eager router graph itself.
 - Stripe status-reconciliation job (dunning notify done; periodic sync is a nice-to-have).
 - Structured logging (current console + Sentry is acceptable).
 - Compliance text (angrerett/privacy) present; **MVA org number + final legal copy are Ops/legal inputs.**
 
 ## 6. Operational checklist before launch (Ops, not code)
 1. Set env per `.env.example` — esp. `JWT_SECRET` (≥32), `DATABASE_URL`, `OPENAI_API_KEY`, `STRIPE_*`, `TOKEN_ENCRYPTION_KEY`, `REDIS_URL`, `PUBLIC_SITE_URL`, `MVA_ORG_NUMBER`.
-2. Run `drizzle-kit migrate` (applies `0025`: `plan_id`, `payment_orders`, `processed_webhook_events`).
+2. Run migrations as a **separate step** — `pnpm db:migrate` (or the compose `migrate` service), never at app boot. Applies up to `0027` (`plan_id`, `payment_orders`, `processed_webhook_events`, `generation_presets`). An existing push-built DB must be **baselined** once first (see `docs/PRODUCTION_READINESS_BACKLOG.md` §4).
 3. **Rotate the previously-leaked TiDB credentials.**
 4. Register OAuth apps (Google/LinkedIn/Vipps) + set webhook secrets (Stripe/Vipps/Telegram).
 5. Point a TLS-terminating proxy at the app (it enforces HTTPS via `x-forwarded-proto`).

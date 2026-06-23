@@ -4,7 +4,7 @@
  */
 
 import { getDb } from "../db";
-import { schedulingPreferences, scheduledPosts, postingTimesAnalytics } from "../../drizzle/schema";
+import { schedulingPreferences, scheduledPosts, postingTimesAnalytics, posts } from "../../drizzle/schema";
 import { eq, and, gte, desc } from "drizzle-orm";
 
 export interface OptimalTime {
@@ -209,6 +209,16 @@ export async function schedulePost(
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+
+  // Tenant isolation: the post MUST belong to this user. Without this check a
+  // caller could schedule someone else's postId and have the scheduler publish
+  // another tenant's content to the caller's connected account.
+  const [owned] = await db
+    .select({ id: posts.id })
+    .from(posts)
+    .where(and(eq(posts.id, postId), eq(posts.userId, userId)))
+    .limit(1);
+  if (!owned) throw new Error("Post not found or unauthorized");
 
   // Calculate optimality score (0-100)
   const optimalTimes = await getOptimalPostingTimes(userId, platform);
