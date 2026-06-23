@@ -32,7 +32,13 @@ pnpm format               # prettier --write .
 Security overrides written as `"pkg@<x": ">=y"` resolve to the **latest** satisfying version, which can jump a major and break a transitive consumer at runtime (e.g. `undici` jumped to 8.x and broke `jsdom`; `path-to-regexp` jumped to 8.x and broke Express 4 — both only caught by booting the bundle). Pin the value to an exact compatible version (`"7.28.0"`, `"0.1.13"`).
 
 ### Server fails fast on missing config
-`server/_core/validateEnv.ts` runs at boot (called from `index.ts`) and aggregates all required env into one error. Always required: `JWT_SECRET` (≥32), `DATABASE_URL`. Production-required: `OPENAI_API_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `TOKEN_ENCRYPTION_KEY`, `PUBLIC_SITE_URL`. Production warnings (boot but feature degraded/fail-closed): `REDIS_URL`, `VIPPS_SECRET_KEY`, `TELEGRAM_WEBHOOK_SECRET`. Full reference: `.env.example`.
+`server/_core/validateEnv.ts` runs at boot (called from `index.ts`) and aggregates all required env into one error. Always required: `JWT_SECRET` (≥32), `DATABASE_URL`. Production-required: `OPENAI_API_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `TOKEN_ENCRYPTION_KEY`, `PUBLIC_SITE_URL`. Production warnings (boot but feature degraded/fail-closed): `REDIS_URL`, `VIPPS_SECRET_KEY`, `TELEGRAM_WEBHOOK_SECRET`. Optional (with safe defaults): `CONTENT_MODEL`/`LLM_MODEL` (two-tier text models), `IMAGE_PROVIDER`/`IMAGE_MODEL`/`FAL_API_KEY` (image provider: `openai` DALL·E or `fal` FLUX), `SENTRY_DSN`. Full reference: `.env.example`.
+
+### Deploy & migrations — NEVER at app boot
+Migrations run as a **separate one-shot job** (`pnpm db:migrate` / the compose `migrate` service built from the Dockerfile `migrator` stage), and the app waits for it (`service_completed_successfully`). The runtime image is multi-stage, **non-root**, prod-deps-only (no drizzle-kit), with a `/health` `HEALTHCHECK`; its CMD is `node dist/index.js` ONLY — a restart never alters the DB. An already-`push`-built DB must be **baselined** once before switching to `migrate` (see `docs/PRODUCTION_READINESS_BACKLOG.md`). `index.ts` registers SIGTERM/SIGINT **graceful shutdown** (drain HTTP, stop scheduler, quit Redis).
+
+### Observability — Sentry must init FIRST
+`server/_core/instrument.ts` (imported first in `index.ts`, right after dotenv) calls `initSentry()` before express/other modules load (v8+ requirement); it no-ops without `SENTRY_DSN`. `Sentry.setupExpressErrorHandler` + process `unhandledRejection`/`uncaughtException` handlers are wired. Don't move the instrument import below other imports.
 
 ### ⚠️ Runtime gotchas (learned 2026-06-22 — green tsc hides all of these)
 - **The IP rate-limiter must only cover `/api`.** `ipRateLimiter` (`_core/rateLimiter.ts`, 100/min) skips everything not under `/api`. Do NOT mount it globally — a single page load is dozens of asset/Vite-module requests, so a global limiter `429`s the SPA's own bootstrap and the app renders a blank white screen.
@@ -42,6 +48,9 @@ Security overrides written as `"pkg@<x": ">=y"` resolve to the **latest** satisf
 - **Generation persists.** `content.generate`/`repurpose`/`series.generatePost` save a draft `posts` row (so "Mine innlegg" isn't empty). Scheduling source of truth is the **`scheduled_posts`** table (the scheduler reads it, not `posts.status`).
 - **LLM-as-JSON:** extract the first balanced JSON value, don't `JSON.parse` the raw model output (models wrap it in ```json fences / trailing prose). See `extractFirstJson*` in `langchain/service.ts`.
 - **Rendering AI lists:** `analyzeTrends` returns objects `{ topic, contentIdeas }`, not strings — render `idea.topic`, never the raw object (else "Objects are not valid as a React child" crashes the page).
+- **Quota is enforced atomically.** `enforcePostQuota` (`server/db.ts`) increments via a conditional update (`SET x = x+1 WHERE x < limit`) and treats `affectedRows === 0` as over-quota — don't revert it to read-then-update (race-exploitable).
+- **Scheduler claims rows before publishing.** `server/schedulerService.ts` flips a due row `scheduled→publishing` atomically and only proceeds if it claimed it (prevents double-publish across instances); a reaper resets rows stuck in `publishing`. It still runs in every instance — see backlog for leader-election.
+- **Keep heavy SDKs off the boot path.** `appRouter` is imported eagerly at startup, so router files must NOT import heavy SDKs (LangChain, Stripe, OpenAI, aws-sdk) at module scope — use `await import(...)` inside the procedure (the established pattern). `langchainRouter`/`paymentRouter` were refactored this way for cold start.
 
 ## Architecture
 

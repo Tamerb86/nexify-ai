@@ -54,6 +54,16 @@ HUGGINGFACE_API_KEY=hf_...
 # Optional OpenAI-compatible proxy (defaults to https://api.openai.com)
 # BUILT_IN_FORGE_API_URL=https://api.openai.com
 # BUILT_IN_FORGE_API_KEY=
+# Text models (optional; default gpt-4o-mini). Quality tier vs light tier:
+# CONTENT_MODEL=gpt-4o-mini      # main generation + "enhance idea"
+# LLM_MODEL=gpt-4o-mini          # hashtags, trends, quick improve, voice summary
+# Image provider (optional; default openai/DALL·E). Use fal.ai FLUX for best cost:
+# IMAGE_PROVIDER=fal             # or "openai"
+# IMAGE_MODEL=fal-ai/flux/dev
+# FAL_API_KEY=...                # required when IMAGE_PROVIDER=fal
+
+# Error tracking (optional; no-op if unset)
+# SENTRY_DSN=https://...@sentry.io/...
 
 # Owner Info
 OWNER_NAME=Your Name
@@ -100,13 +110,26 @@ npm run build:analyze
 
 ### 3. Database Setup
 
+Apply migrations as a **separate, explicit step** — never at app boot, and never
+`db:push` in production (`db:push` is a dev-only direct schema sync).
+
 ```bash
-# Push database schema to production
-pnpm db:push
+# Apply pending migrations (history-based, rollback-friendly). Needs DATABASE_URL.
+pnpm db:migrate          # = drizzle-kit migrate
 
 # Run database optimization
 node server/scripts/optimizeDatabase.ts
 ```
+
+> **First switch from a push-built DB:** if the database was previously built with
+> `drizzle-kit push`, its schema exists but the migration journal is empty, so
+> `migrate` would try to re-create existing tables. **Baseline it once** (mark all
+> current migrations as applied) before running `migrate`. See
+> `docs/PRODUCTION_READINESS_BACKLOG.md` §4.
+
+> **Docker:** the image is multi-stage and runs migrations via a dedicated one-shot
+> `migrate` service (compose) / the `migrator` build stage — the app container
+> (`node dist/index.js`, non-root) never touches the schema on start.
 
 ### 4. Deploy to Vercel
 
